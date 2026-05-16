@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { CARD_POSTS_MISSING_MESSAGE, CARD_POSTS_TABLE, isMissingCardPostsTable } from '../lib/cardPostsSchema'
+import { CARD_TAGS, normalizeCardDates, normalizeCardTags, formatCardDate } from '../lib/cardMetadata'
 import CardDisplay from '../components/CardDisplay'
 import CardModal from '../components/CardModal'
 
@@ -22,6 +23,9 @@ export default function Admin() {
   const [weightTouched, setWeightTouched] = useState(false)
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
+  const [tagNames, setTagNames] = useState([])
+  const [cardDates, setCardDates] = useState([])
+  const [newCardDate, setNewCardDate] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -34,6 +38,7 @@ export default function Admin() {
   const [postExplanation, setPostExplanation] = useState('')
   const [postPublished, setPostPublished] = useState(true)
   const [savingCardId, setSavingCardId] = useState('')
+  const [cardDateDrafts, setCardDateDrafts] = useState({})
 
   useEffect(() => {
     loadCards()
@@ -72,6 +77,42 @@ export default function Admin() {
     setImagePreview(URL.createObjectURL(file))
   }
 
+  function toggleNewCardTag(tag) {
+    setTagNames(current => (
+      current.includes(tag)
+        ? current.filter(t => t !== tag)
+        : [...current, tag]
+    ))
+  }
+
+  function addNewCardDate() {
+    if (!newCardDate) return
+    setCardDates(current => normalizeCardDates([...current, newCardDate]))
+    setNewCardDate('')
+  }
+
+  function removeNewCardDate(date) {
+    setCardDates(current => current.filter(d => d !== date))
+  }
+
+  function toggleCardTag(card, tag) {
+    const currentTags = normalizeCardTags(card.tag_names)
+    const nextTags = currentTags.includes(tag)
+      ? currentTags.filter(t => t !== tag)
+      : [...currentTags, tag]
+    updateCard(card, { tag_names: nextTags })
+  }
+
+  function addCardDate(card, date) {
+    if (!date) return
+    updateCard(card, { card_dates: normalizeCardDates([...(card.card_dates || []), date]) })
+    setCardDateDrafts(current => ({ ...current, [card.id]: '' }))
+  }
+
+  function removeCardDate(card, date) {
+    updateCard(card, { card_dates: normalizeCardDates(card.card_dates).filter(d => d !== date) })
+  }
+
   async function addCard(e) {
     e.preventDefault()
     if (!imageFile) { setError('Please select an image'); return }
@@ -94,6 +135,8 @@ export default function Admin() {
         image_url: urlData.publicUrl,
         rarity,
         rarity_weight: Number(weight),
+        tag_names: normalizeCardTags(tagNames),
+        card_dates: normalizeCardDates(cardDates),
       })
       if (insertError) throw insertError
 
@@ -105,6 +148,9 @@ export default function Admin() {
       setWeightTouched(false)
       setImageFile(null)
       setImagePreview('')
+      setTagNames([])
+      setCardDates([])
+      setNewCardDate('')
       loadCards()
     } catch (err) {
       setError(err.message)
@@ -123,6 +169,8 @@ export default function Admin() {
         target_card_id: card.id,
         new_rarity: changes.rarity ?? null,
         new_rarity_weight: changes.rarity_weight ?? null,
+        new_tag_names: changes.tag_names ?? null,
+        new_card_dates: changes.card_dates ?? null,
       })
 
       if (updateError) throw updateError
@@ -283,6 +331,63 @@ export default function Admin() {
               <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
                 placeholder="Optional flavour text..."
                 className={`${inputClass} resize-none`} />
+            </div>
+
+            <div>
+              <label className="block text-sm text-navy/60 mb-2 font-medium">Tags</label>
+              <div className="flex flex-wrap gap-2">
+                {CARD_TAGS.map(tag => (
+                  <label
+                    key={tag}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold cursor-pointer transition-colors ${
+                      tagNames.includes(tag)
+                        ? 'bg-gold/20 border-gold text-gold-dark'
+                        : 'bg-mist border-navy/15 text-navy/60 hover:border-gold/50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={tagNames.includes(tag)}
+                      onChange={() => toggleNewCardTag(tag)}
+                      className="h-4 w-4 accent-gold"
+                    />
+                    {tag}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-navy/60 mb-2 font-medium">Card Dates</label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="date"
+                  value={newCardDate}
+                  onChange={e => setNewCardDate(e.target.value)}
+                  className={inputClass}
+                />
+                <button
+                  type="button"
+                  onClick={addNewCardDate}
+                  className="bg-navy hover:bg-navy-mid text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-colors"
+                >
+                  Add Date
+                </button>
+              </div>
+              {cardDates.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {cardDates.map(date => (
+                    <button
+                      key={date}
+                      type="button"
+                      onClick={() => removeNewCardDate(date)}
+                      className="bg-white border border-navy/15 text-navy/70 hover:border-red-300 hover:text-red-700 px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                    >
+                      {formatCardDate(date)} x
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -493,6 +598,62 @@ export default function Admin() {
                         />
                         <span className="text-xs text-gold-dark font-bold">{pct(card.rarity_weight)}%</span>
                       </div>
+
+                      <label className="block text-[11px] text-navy/40 mt-3 mb-1">Tags</label>
+                      <div className="flex flex-wrap gap-1">
+                        {CARD_TAGS.map(tag => {
+                          const checked = normalizeCardTags(card.tag_names).includes(tag)
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => toggleCardTag(card, tag)}
+                              disabled={savingCardId === card.id}
+                              className={`px-2 py-1 rounded-full text-[10px] font-bold border transition-colors ${
+                                checked
+                                  ? 'bg-gold/20 border-gold text-gold-dark'
+                                  : 'bg-mist border-navy/10 text-navy/45 hover:border-gold/50'
+                              }`}
+                            >
+                              {tag}
+                            </button>
+                          )
+                        })}
+                      </div>
+
+                      <label className="block text-[11px] text-navy/40 mt-3 mb-1">Dates</label>
+                      <div className="flex gap-1">
+                        <input
+                          type="date"
+                          value={cardDateDrafts[card.id] || ''}
+                          onChange={e => setCardDateDrafts(current => ({ ...current, [card.id]: e.target.value }))}
+                          disabled={savingCardId === card.id}
+                          className="min-w-0 flex-1 bg-mist border border-navy/15 rounded px-1.5 py-1 text-[11px] text-navy focus:outline-none focus:border-gold"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => addCardDate(card, cardDateDrafts[card.id])}
+                          disabled={savingCardId === card.id || !cardDateDrafts[card.id]}
+                          className="bg-navy hover:bg-navy-mid disabled:opacity-40 text-white rounded px-2 text-xs font-bold"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {normalizeCardDates(card.card_dates).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {normalizeCardDates(card.card_dates).map(date => (
+                            <button
+                              key={date}
+                              type="button"
+                              onClick={() => removeCardDate(card, date)}
+                              disabled={savingCardId === card.id}
+                              className="bg-white border border-navy/10 text-navy/55 hover:border-red-300 hover:text-red-700 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors"
+                            >
+                              {formatCardDate(date)} x
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -35,6 +35,9 @@ CREATE TABLE cards (
   image_url TEXT NOT NULL,
   rarity TEXT CHECK (rarity IN ('common', 'rare', 'legendary')) NOT NULL,
   rarity_weight INTEGER NOT NULL DEFAULT 70,
+  tag_names TEXT[] NOT NULL DEFAULT '{}',
+  card_dates DATE[] NOT NULL DEFAULT '{}',
+  CHECK (tag_names <@ ARRAY['News May 2026', 'CFA Level 1', 'Python', 'French history']::TEXT[]),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

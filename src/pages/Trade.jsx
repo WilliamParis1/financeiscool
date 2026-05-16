@@ -19,6 +19,7 @@ export default function Trade() {
   const [selectedTheirCard, setSelectedTheirCard] = useState(null)
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
+  const [respondingTradeId, setRespondingTradeId] = useState('')
   const [tradeError, setTradeError] = useState('')
   const [tradeSuccess, setTradeSuccess] = useState('')
 
@@ -90,32 +91,27 @@ export default function Trade() {
     setSending(false)
   }
 
-  async function transferCard(fromUserId, toUserId, cardId) {
-    const { data: fromCard } = await supabase.from('user_cards').select('*').eq('user_id', fromUserId).eq('card_id', cardId).single()
-    if (fromCard) {
-      if (fromCard.quantity > 1) {
-        await supabase.from('user_cards').update({ quantity: fromCard.quantity - 1 }).eq('id', fromCard.id)
-      } else {
-        await supabase.from('user_cards').delete().eq('id', fromCard.id)
-      }
-    }
-    const { data: toCard } = await supabase.from('user_cards').select('*').eq('user_id', toUserId).eq('card_id', cardId).single()
-    if (toCard) {
-      await supabase.from('user_cards').update({ quantity: toCard.quantity + 1 }).eq('id', toCard.id)
-    } else {
-      await supabase.from('user_cards').insert({ user_id: toUserId, card_id: cardId, quantity: 1 })
-    }
-  }
-
   async function respondTrade(trade, status) {
-    await supabase.from('trades').update({ status }).eq('id', trade.id)
-    if (status === 'accepted') {
-      await transferCard(trade.from_user_id, user.id, trade.offered_card_id)
-      if (trade.requested_card_id) {
-        await transferCard(user.id, trade.from_user_id, trade.requested_card_id)
+    setRespondingTradeId(trade.id)
+    setTradeError('')
+    setTradeSuccess('')
+
+    try {
+      if (status === 'accepted') {
+        const { error } = await supabase.rpc('accept_trade', { target_trade_id: trade.id })
+        if (error) throw error
+        setTradeSuccess('Trade accepted. Both cards were exchanged.')
+      } else {
+        const { error } = await supabase.from('trades').update({ status }).eq('id', trade.id)
+        if (error) throw error
+        setTradeSuccess('Trade rejected.')
       }
+      await Promise.all([loadTrades(), loadMyCards()])
+    } catch (err) {
+      setTradeError(err.message)
+    } finally {
+      setRespondingTradeId('')
     }
-    loadTrades()
   }
 
   async function cancelTrade(tradeId) {
@@ -156,6 +152,8 @@ export default function Trade() {
       {/* Incoming */}
       {tab === 'incoming' && (
         <div className="space-y-4">
+          {tradeError && <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 text-sm">{tradeError}</div>}
+          {tradeSuccess && <div className="bg-green-50 border border-green-300 text-green-700 rounded-lg p-3 text-sm">{tradeSuccess}</div>}
           {incoming.length === 0 ? (
             <div className="text-center py-12 text-navy/50 bg-white rounded-2xl border border-navy/10 shadow-sm">
               No incoming trade offers
@@ -182,12 +180,18 @@ export default function Trade() {
               </div>
               {trade.message && <p className="text-navy/60 text-sm mt-3 italic">"{trade.message}"</p>}
               <div className="flex gap-3 mt-4">
-                <button onClick={() => respondTrade(trade, 'accepted')}
-                  className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm transition-colors font-semibold">
-                  Accept
+                <button
+                  onClick={() => respondTrade(trade, 'accepted')}
+                  disabled={respondingTradeId === trade.id}
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm transition-colors font-semibold"
+                >
+                  {respondingTradeId === trade.id ? 'Working...' : 'Accept'}
                 </button>
-                <button onClick={() => respondTrade(trade, 'rejected')}
-                  className="bg-red-100 hover:bg-red-200 text-red-700 px-5 py-2 rounded-lg text-sm transition-colors font-semibold">
+                <button
+                  onClick={() => respondTrade(trade, 'rejected')}
+                  disabled={respondingTradeId === trade.id}
+                  className="bg-red-100 hover:bg-red-200 disabled:opacity-50 text-red-700 px-5 py-2 rounded-lg text-sm transition-colors font-semibold"
+                >
                   Reject
                 </button>
               </div>

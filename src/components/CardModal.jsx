@@ -1,3 +1,5 @@
+import { formatCardDate, normalizeCardDates, normalizeCardTags } from '../lib/cardMetadata'
+
 const RARITY_STYLES = {
   common:    { border: 'border-navy/25', badge: 'bg-navy/10 text-navy',     label: 'Common',    glow: '' },
   rare:      { border: 'border-blue-500', badge: 'bg-blue-100 text-blue-700', label: 'Rare',      glow: 'shadow-[0_0_35px_rgba(37,99,235,0.35)]' },
@@ -7,6 +9,8 @@ const RARITY_STYLES = {
 export default function CardModal({ card, onClose, actions }) {
   if (!card) return null
   const style = RARITY_STYLES[card.rarity] || RARITY_STYLES.common
+  const tags = normalizeCardTags(card.tag_names)
+  const dates = normalizeCardDates(card.card_dates)
 
   return (
     <div
@@ -23,12 +27,12 @@ export default function CardModal({ card, onClose, actions }) {
             onClick={onClose}
             className="absolute top-3 right-3 bg-white/80 hover:bg-white rounded-full w-8 h-8 flex items-center justify-center text-navy text-sm transition-colors shadow"
           >
-            ✕
+            x
           </button>
         </div>
 
         <div className="p-6">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between gap-3 mb-3">
             <h2 className="text-xl font-bold text-navy">{card.name}</h2>
             <span className={`text-sm px-3 py-1 rounded-full font-semibold ${style.badge}`}>
               {style.label}
@@ -36,6 +40,27 @@ export default function CardModal({ card, onClose, actions }) {
           </div>
           {card.description && (
             <p className="text-navy/60 text-sm leading-relaxed">{card.description}</p>
+          )}
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {tags.map(tag => (
+                <span key={tag} className="bg-gold/15 text-gold-dark px-3 py-1 rounded-full text-xs font-bold">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+          {dates.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-navy/40 font-bold mb-2">Dates</p>
+              <div className="flex flex-wrap gap-2">
+                {dates.map(date => (
+                  <span key={date} className="bg-mist text-navy/70 border border-navy/10 px-3 py-1 rounded-full text-xs font-semibold">
+                    {formatCardDate(date)}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
           {card.quantity > 1 && (
             <p className="text-navy/40 text-sm mt-2">You own {card.quantity} copies</p>
