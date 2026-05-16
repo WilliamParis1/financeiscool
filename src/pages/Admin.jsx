@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { CARD_POSTS_MISSING_MESSAGE, CARD_POSTS_TABLE, isMissingCardPostsTable } from '../lib/cardPostsSchema'
 import CardDisplay from '../components/CardDisplay'
 import CardModal from '../components/CardModal'
 
 // Suggested default weight per rarity (game master can override per card)
 const DEFAULT_WEIGHT = { common: 70, rare: 25, legendary: 5 }
+const VALID_RARITIES = Object.keys(DEFAULT_WEIGHT)
 
 export default function Admin() {
   const [cards, setCards] = useState([])
@@ -23,6 +25,7 @@ export default function Admin() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [postSetupError, setPostSetupError] = useState('')
   const [postSubmitting, setPostSubmitting] = useState(false)
   const [postCardId, setPostCardId] = useState('')
   const [postTitle, setPostTitle] = useState('')
@@ -30,6 +33,7 @@ export default function Admin() {
   const [postSummary, setPostSummary] = useState('')
   const [postExplanation, setPostExplanation] = useState('')
   const [postPublished, setPostPublished] = useState(true)
+  const [savingCardId, setSavingCardId] = useState('')
 
   useEffect(() => {
     loadCards()
@@ -48,10 +52,16 @@ export default function Admin() {
   }
 
   async function loadPosts() {
-    const { data } = await supabase
-      .from('card_posts')
+    const { data, error } = await supabase
+      .from(CARD_POSTS_TABLE)
       .select('*, cards(*)')
       .order('published_at', { ascending: false })
+    if (isMissingCardPostsTable(error)) {
+      setPostSetupError(CARD_POSTS_MISSING_MESSAGE)
+      setPosts([])
+      return
+    }
+    setPostSetupError('')
     setPosts(data || [])
   }
 
@@ -103,22 +113,51 @@ export default function Admin() {
     }
   }
 
+  async function updateCard(card, changes) {
+    setSavingCardId(card.id)
+    setError('')
+    setSuccess('')
+
+    try {
+      const { data, error: updateError } = await supabase.rpc('admin_update_card_settings', {
+        target_card_id: card.id,
+        new_rarity: changes.rarity ?? null,
+        new_rarity_weight: changes.rarity_weight ?? null,
+      })
+
+      if (updateError) throw updateError
+      const savedCard = Array.isArray(data) ? data[0] : data
+
+      setCards(cs => cs.map(c => c.id === card.id ? savedCard : c))
+      setSelectedCard(current => current?.id === card.id ? savedCard : current)
+      loadPosts()
+      return savedCard
+    } catch (err) {
+      setError(`Could not save "${card.name}": ${err.message}`)
+      loadCards()
+      return null
+    } finally {
+      setSavingCardId('')
+    }
+  }
+
   async function updateWeight(card, newWeight) {
     const w = Number(newWeight)
     if (isNaN(w) || w < 0) return
-    setCards(cs => cs.map(c => c.id === card.id ? { ...c, rarity_weight: w } : c))
-    await supabase.from('cards').update({ rarity_weight: w }).eq('id', card.id)
+    await updateCard(card, { rarity_weight: w })
   }
 
   async function updateRarity(card, newRarity) {
-    if (!['common', 'rare', 'legendary'].includes(newRarity)) return
-    setCards(cs => cs.map(c => c.id === card.id ? { ...c, rarity: newRarity } : c))
-    await supabase.from('cards').update({ rarity: newRarity }).eq('id', card.id)
+    if (!VALID_RARITIES.includes(newRarity)) return
+    const savedCard = await updateCard(card, { rarity: newRarity })
+    if (savedCard) {
+      setSuccess(`"${card.name}" is now ${newRarity}. All inventory copies use this shared card rarity.`)
+    }
   }
 
   async function deleteCard(card) {
     if (!window.confirm(`Delete "${card.name}"? This removes it from all collections.`)) return
-    await supabase.from('card_posts').delete().eq('card_id', card.id)
+    await supabase.from(CARD_POSTS_TABLE).delete().eq('card_id', card.id)
     await supabase.from('user_cards').delete().eq('card_id', card.id)
     await supabase.from('daily_claims').delete().eq('card_id', card.id)
     await supabase.from('cards').delete().eq('id', card.id)
@@ -136,7 +175,7 @@ export default function Admin() {
     setSuccess('')
 
     try {
-      const { error: insertError } = await supabase.from('card_posts').insert({
+      const { error: insertError } = await supabase.from(CARD_POSTS_TABLE).insert({
         card_id: postCardId,
         title: postTitle,
         news_source: postSource || null,
@@ -145,6 +184,10 @@ export default function Admin() {
         is_published: postPublished,
         published_at: new Date().toISOString(),
       })
+      if (isMissingCardPostsTable(insertError)) {
+        setPostSetupError(CARD_POSTS_MISSING_MESSAGE)
+        throw new Error(CARD_POSTS_MISSING_MESSAGE)
+      }
       if (insertError) throw insertError
 
       setSuccess(`"${postTitle}" published to the homepage.`)
@@ -165,12 +208,12 @@ export default function Admin() {
   async function updatePost(post, changes) {
     const next = { ...post, ...changes }
     setPosts(ps => ps.map(p => p.id === post.id ? next : p))
-    await supabase.from('card_posts').update(changes).eq('id', post.id)
+    await supabase.from(CARD_POSTS_TABLE).update(changes).eq('id', post.id)
   }
 
   async function deletePost(post) {
     if (!window.confirm(`Delete "${post.title}" from the homepage journal?`)) return
-    await supabase.from('card_posts').delete().eq('id', post.id)
+    await supabase.from(CARD_POSTS_TABLE).delete().eq('id', post.id)
     loadPosts()
   }
 
@@ -247,7 +290,7 @@ export default function Admin() {
               <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageChange}
                 className="w-full text-sm text-navy/60 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gold/20 file:text-gold-dark file:font-semibold hover:file:bg-gold/30 cursor-pointer" />
               {imagePreview && (
-                <img src={imagePreview} alt="Preview" className="mt-3 w-36 h-36 object-cover rounded-xl border-2 border-gold/50" />
+                <img src={imagePreview} alt="Preview" className="mt-3 w-36 aspect-[5/7] object-contain bg-mist rounded-xl border-2 border-gold/50" />
               )}
             </div>
 
@@ -269,6 +312,12 @@ export default function Admin() {
 
             {error   && <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 mb-5 text-sm">{error}</div>}
             {success && <div className="bg-green-50 border border-green-300 text-green-700 rounded-lg p-3 mb-5 text-sm">{success}</div>}
+            {postSetupError && (
+              <div className="bg-amber-50 border border-amber-300 text-amber-800 rounded-lg p-3 mb-5 text-sm">
+                {postSetupError}
+                <div className="mt-1 font-semibold">Migration: supabase/migrations/20260516183000_create_card_posts.sql</div>
+              </div>
+            )}
 
             <form onSubmit={addPost} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -357,7 +406,7 @@ export default function Admin() {
                 {posts.map(post => (
                   <div key={post.id} className="bg-white rounded-2xl border border-navy/10 shadow-sm p-4 grid grid-cols-1 md:grid-cols-[96px_1fr_auto] gap-4">
                     {post.cards?.image_url ? (
-                      <img src={post.cards.image_url} alt={post.cards.name} className="w-24 h-24 object-cover rounded-xl border border-gold/40" />
+                      <img src={post.cards.image_url} alt={post.cards.name} className="w-20 aspect-[5/7] object-contain bg-mist rounded-xl border border-gold/40" />
                     ) : (
                       <div className="w-24 h-24 bg-mist rounded-xl border border-navy/10" />
                     )}
@@ -395,6 +444,9 @@ export default function Admin() {
 
       {tab === 'cards' && (
         <div>
+          {error && <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 mb-5 text-sm">{error}</div>}
+          {success && <div className="bg-green-50 border border-green-300 text-green-700 rounded-lg p-3 mb-5 text-sm">{success}</div>}
+
           {loading ? (
             <div className="text-center py-12 text-navy/50 animate-pulse">Loading...</div>
           ) : cards.length === 0 ? (
@@ -422,6 +474,7 @@ export default function Admin() {
                       <select
                         value={card.rarity}
                         onChange={e => updateRarity(card, e.target.value)}
+                        disabled={savingCardId === card.id}
                         className="w-full bg-mist border border-navy/15 rounded px-2 py-1 text-xs text-navy focus:outline-none focus:border-gold mb-2"
                       >
                         <option value="common">Common</option>
@@ -435,6 +488,7 @@ export default function Admin() {
                           type="number" min="0"
                           value={card.rarity_weight ?? 0}
                           onChange={e => updateWeight(card, e.target.value)}
+                          disabled={savingCardId === card.id}
                           className="w-16 bg-mist border border-navy/15 rounded px-2 py-1 text-sm text-navy focus:outline-none focus:border-gold"
                         />
                         <span className="text-xs text-gold-dark font-bold">{pct(card.rarity_weight)}%</span>

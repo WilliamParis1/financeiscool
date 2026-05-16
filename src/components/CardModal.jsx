@@ -14,11 +14,11 @@ export default function CardModal({ card, onClose, actions }) {
       onClick={onClose}
     >
       <div
-        className={`bg-white rounded-2xl border-2 ${style.border} ${style.glow} max-w-sm w-full overflow-hidden`}
+        className={`bg-white rounded-2xl border-2 ${style.border} ${style.glow} max-w-md w-full max-h-[calc(100vh-2rem)] overflow-y-auto`}
         onClick={e => e.stopPropagation()}
       >
-        <div className="relative h-72 bg-mist">
-          <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
+        <div className="relative w-full aspect-[5/7] bg-mist">
+          <img src={card.image_url} alt={card.name} className="w-full h-full object-contain" />
           <button
             onClick={onClose}
             className="absolute top-3 right-3 bg-white/80 hover:bg-white rounded-full w-8 h-8 flex items-center justify-center text-navy text-sm transition-colors shadow"

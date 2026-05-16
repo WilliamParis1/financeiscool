@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
+import { CARD_POSTS_TABLE, isMissingCardPostsTable } from '../lib/cardPostsSchema'
 import GlowButton from '../components/GlowButton'
 
 export default function Home() {
@@ -14,12 +15,18 @@ export default function Home() {
   }, [])
 
   async function loadPosts() {
-    const { data } = await supabase
-      .from('card_posts')
+    const { data, error } = await supabase
+      .from(CARD_POSTS_TABLE)
       .select('*, cards(*)')
       .eq('is_published', true)
       .order('published_at', { ascending: false })
       .limit(6)
+
+    if (isMissingCardPostsTable(error)) {
+      setPosts([])
+      setPostsLoading(false)
+      return
+    }
 
     setPosts(data || [])
     setPostsLoading(false)
@@ -119,7 +126,7 @@ export default function Home() {
                   {post.cards ? (
                     <div className="w-52">
                       <div className="rounded-2xl border-2 border-gold/50 bg-white shadow-lg overflow-hidden">
-                        <img src={post.cards.image_url} alt={post.cards.name} className="w-full aspect-square object-cover" />
+                        <img src={post.cards.image_url} alt={post.cards.name} className="w-full aspect-[5/7] object-contain bg-mist" />
                         <div className="p-3">
                           <p className="font-extrabold text-navy truncate">{post.cards.name}</p>
                           <p className="text-xs uppercase tracking-[0.18em] text-gold-dark font-bold mt-1">{post.cards.rarity}</p>

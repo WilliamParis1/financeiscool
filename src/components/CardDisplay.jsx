@@ -35,11 +35,11 @@ export default function CardDisplay({ card, onClick, small = false }) {
         small ? 'w-32' : 'w-48',
       ].join(' ')}
     >
-      <div className={`relative overflow-hidden bg-mist ${small ? 'h-32' : 'h-48'}`}>
+      <div className="relative w-full aspect-[5/7] overflow-hidden bg-mist">
         <img
           src={card.image_url}
           alt={card.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
         />
       </div>
 

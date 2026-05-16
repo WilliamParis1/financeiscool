@@ -252,6 +252,9 @@ If your database was created before this feature existed, run this once in
 Supabase SQL Editor. It creates the editable homepage post area where an admin
 can connect a card to a finance/news explanation.
 
+The same SQL is tracked in
+`supabase/migrations/20260516183000_create_card_posts.sql`.
+
 ```sql
 CREATE TABLE IF NOT EXISTS card_posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
