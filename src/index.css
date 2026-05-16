@@ -68,30 +68,6 @@ html, body {
   100% { transform: perspective(900px) rotateY(0deg)  scale(1);    opacity: 1; }
 }
 
-/* Expanding shockwave ring behind the revealed card */
-.shockwave {
-  position: absolute;
-  border-radius: 9999px;
-  border: 3px solid currentColor;
-  animation: shockwave 0.9s ease-out forwards;
-}
-@keyframes shockwave {
-  0%   { width: 40px;  height: 40px;  opacity: 0.9; }
-  100% { width: 520px; height: 520px; opacity: 0;   }
-}
-
-/* Radial ray burst behind card */
-.ray-burst {
-  position: absolute;
-  inset: -60%;
-  background: repeating-conic-gradient(
-    currentColor 0deg 6deg, transparent 6deg 18deg);
-  opacity: 0.18;
-  animation: ray-spin 9s linear infinite, ray-fade 0.8s ease-out both;
-}
-@keyframes ray-spin { to { transform: rotate(360deg); } }
-@keyframes ray-fade { from { opacity: 0; } to { opacity: 0.18; } }
-
 /* Full-screen flash on reveal */
 .screen-flash {
   position: fixed; inset: 0; pointer-events: none; z-index: 60;
@@ -104,17 +80,3 @@ html, body {
   100% { opacity: 0;   }
 }
 
-/* Floating sparkle particles (legendary) */
-.sparkle {
-  position: absolute;
-  width: 8px; height: 8px;
-  background: #e6c977;
-  border-radius: 9999px;
-  box-shadow: 0 0 8px 2px rgba(230,201,119,0.9);
-  animation: sparkle-float 1.4s ease-out forwards;
-}
-@keyframes sparkle-float {
-  0%   { transform: translate(0,0) scale(0);   opacity: 1; }
-  70%  { opacity: 1; }
-  100% { transform: translate(var(--dx), var(--dy)) scale(1.4); opacity: 0; }
-}

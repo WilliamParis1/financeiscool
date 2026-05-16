@@ -25,21 +25,9 @@ function pickWeightedCard(cards) {
 }
 
 const RARITY = {
-  legendary: { text: '🌟 LEGENDARY!',   color: '#c9a24b', sparkles: 26 },
-  rare:      { text: '💫 RARE CARD!',    color: '#2563eb', sparkles: 14 },
-  common:    { text: '✦ Card obtained!', color: '#0a1f44', sparkles: 6  },
-}
-
-function makeSparkles(n) {
-  return Array.from({ length: n }).map((_, i) => {
-    const angle = (i / n) * Math.PI * 2 + Math.random() * 0.4
-    const dist = 90 + Math.random() * 150
-    return {
-      dx: `${Math.cos(angle) * dist}px`,
-      dy: `${Math.sin(angle) * dist}px`,
-      delay: `${Math.random() * 0.25}s`,
-    }
-  })
+  legendary: { text: '🌟 LEGENDARY!',   color: '#c9a24b' },
+  rare:      { text: '💫 RARE CARD!',    color: '#2563eb' },
+  common:    { text: '✦ Card obtained!', color: '#0a1f44' },
 }
 
 function formatRemaining(ms) {
@@ -144,7 +132,6 @@ export default function DailyDraw() {
   if (loading) return <div className="text-center py-20 text-navy/50 animate-pulse">Loading...</div>
 
   const rarityCfg = RARITY[newCard?.rarity] || RARITY.common
-  const sparkles = revealed ? makeSparkles(rarityCfg.sparkles) : []
 
   return (
     <div className="max-w-2xl mx-auto text-center">
@@ -152,7 +139,7 @@ export default function DailyDraw() {
 
       <h1 className="text-4xl font-extrabold text-navy mb-2">Daily Card Draw</h1>
       <p className="text-navy/50 mb-10">
-        A fresh card every minute <span className="text-gold-dark font-semibold">(testing mode)</span>
+        Draw a card and grow your collection.
       </p>
 
       {error && (
@@ -174,23 +161,8 @@ export default function DailyDraw() {
       ) : revealed && newCard ? (
         /* ---------- Reveal ---------- */
         <div className="flex flex-col items-center gap-6">
-          <div
-            className="relative flex items-center justify-center w-72 h-96"
-            style={{ color: rarityCfg.color }}
-          >
-            <div className="ray-burst rounded-full" />
-            <div className="shockwave" />
-            <div className="shockwave" style={{ animationDelay: '0.12s' }} />
-            {sparkles.map((s, i) => (
-              <span
-                key={i}
-                className="sparkle"
-                style={{ '--dx': s.dx, '--dy': s.dy, animationDelay: s.delay }}
-              />
-            ))}
-            <div className="reveal-card relative z-10">
-              <CardDisplay card={newCard} onClick={setSelectedCard} />
-            </div>
+          <div className="reveal-card">
+            <CardDisplay card={newCard} onClick={setSelectedCard} />
           </div>
 
           <p className="text-3xl font-extrabold tracking-wide" style={{ color: rarityCfg.color }}>
