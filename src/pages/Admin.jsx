@@ -57,6 +57,7 @@ export default function Admin() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [postSetupError, setPostSetupError] = useState('')
+  const [tagSetupError, setTagSetupError] = useState('')
   const [postSubmitting, setPostSubmitting] = useState(false)
   const [postCardId, setPostCardId] = useState('')
   const [postTitle, setPostTitle] = useState('')
@@ -98,10 +99,11 @@ export default function Admin() {
 
     if (error) {
       setAvailableTags(DEFAULT_CARD_TAGS)
-      setError(isMissingCardMetadata(error) ? CARD_TAGS_MISSING_MESSAGE : error.message)
+      setTagSetupError(isMissingCardMetadata(error) ? CARD_TAGS_MISSING_MESSAGE : error.message)
       return
     }
 
+    setTagSetupError('')
     setAvailableTags(data?.length ? data.map(tag => ({ ...tag, color: normalizeTagColor(tag.color) })) : DEFAULT_CARD_TAGS)
   }
 
@@ -513,6 +515,7 @@ export default function Admin() {
         <div className="space-y-6">
           {error && <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 text-sm">{error}</div>}
           {success && <div className="bg-green-50 border border-green-300 text-green-700 rounded-lg p-3 text-sm">{success}</div>}
+          {tagSetupError && <div className="bg-amber-50 border border-amber-300 text-amber-800 rounded-lg p-3 text-sm">{tagSetupError}</div>}
 
           <div className="bg-white rounded-2xl p-8 border border-navy/10 shadow-lg">
             <h2 className="text-xl font-bold text-navy mb-6">Create Tag</h2>
@@ -547,7 +550,7 @@ export default function Admin() {
               </div>
               <button
                 type="submit"
-                disabled={tagSubmitting}
+                disabled={tagSubmitting || Boolean(tagSetupError)}
                 className="bg-gold hover:bg-gold-dark disabled:opacity-50 text-navy-dark px-5 py-3 rounded-xl font-bold transition-colors"
               >
                 {tagSubmitting ? 'Creating...' : 'Create Tag'}
