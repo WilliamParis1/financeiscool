@@ -138,9 +138,19 @@ export default function DailyDraw() {
       {flash && <div className="screen-flash" />}
 
       <h1 className="text-4xl font-extrabold text-navy mb-2">Daily Card Draw</h1>
-      <p className="text-navy/50 mb-10">
+      <p className="text-navy/50 mb-3">
         Draw a card and grow your collection.
       </p>
+
+      {onCooldown && (
+        <p className="text-sm text-navy/60 mb-8">
+          Next card in:{' '}
+          <span className="text-gold-dark font-mono font-bold text-base">
+            {formatRemaining(remainingMs)}
+          </span>
+        </p>
+      )}
+      {!onCooldown && <div className="mb-8" />}
 
       {error && (
         <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 mb-6 text-sm">{error}</div>
@@ -170,11 +180,7 @@ export default function DailyDraw() {
           </p>
           <p className="text-navy font-semibold text-lg">{newCard?.name}</p>
 
-          {onCooldown ? (
-            <p className="text-navy/50 text-sm">
-              Next card in: <span className="text-gold-dark font-mono font-bold">{formatRemaining(remainingMs)}</span>
-            </p>
-          ) : (
+          {!onCooldown && (
             <GlowButton onClick={claimCard} className="px-14 py-4 text-lg">Draw Again</GlowButton>
           )}
         </div>
@@ -186,9 +192,6 @@ export default function DailyDraw() {
             ✓ Card claimed!
           </p>
           {lastCard && <CardDisplay card={lastCard} onClick={setSelectedCard} />}
-          <p className="text-navy/50 text-sm">
-            Next card in: <span className="text-gold-dark font-mono font-bold">{formatRemaining(remainingMs)}</span>
-          </p>
         </div>
 
       ) : (
