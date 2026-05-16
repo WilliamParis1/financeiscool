@@ -133,30 +133,49 @@ CREATE POLICY "public_read" ON storage.objects FOR SELECT
   USING (bucket_id = 'card-images');
 ```
 
-## 6. Make yourself an admin (automatic)
+## 6. Auto-create profiles + make yourself admin
 
-Run this in SQL Editor. It creates a rule that **automatically** grants admin
-to your account (william.longin@gmail.com) the moment you sign up — no manual
-step needed:
+This trigger makes the database automatically create a `profiles` row whenever
+someone signs up (reading their chosen username), and auto-grants admin to
+william.longin@gmail.com. This avoids the row-level-security error that occurs
+when the app tries to insert the profile itself.
+
+Run this in SQL Editor:
 
 ```sql
-CREATE OR REPLACE FUNCTION grant_admin_to_owner()
+-- Remove the old approach if it was created earlier
+DROP TRIGGER IF EXISTS on_profile_created ON profiles;
+DROP FUNCTION IF EXISTS grant_admin_to_owner();
+
+-- Create the profile automatically when a new auth user signs up
+CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF (SELECT email FROM auth.users WHERE id = NEW.id) = 'william.longin@gmail.com' THEN
-    NEW.is_admin := true;
-  END IF;
+  INSERT INTO public.profiles (id, username, is_admin)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+    NEW.email = 'william.longin@gmail.com'
+  );
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER on_profile_created
-  BEFORE INSERT ON profiles
-  FOR EACH ROW EXECUTE FUNCTION grant_admin_to_owner();
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 ```
 
 > To make someone else an admin later, run:
 > `UPDATE profiles SET is_admin = true WHERE username = 'their_username';`
+
+## 6b. Turn off email confirmation (so signup logs you straight in)
+
+In Supabase → **Authentication → Sign In / Providers → Email** →
+turn **OFF** "Confirm email" → Save.
+
+(Without this, new users must click an email link before they can log in.)
 
 ## 7. Run the app locally
 
