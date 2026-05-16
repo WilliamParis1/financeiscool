@@ -56,6 +56,19 @@ CREATE TABLE daily_claims (
   claimed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Homepage posts that explain a card through a finance/news story
+CREATE TABLE card_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_id UUID REFERENCES cards(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  news_source TEXT,
+  market_summary TEXT,
+  explanation TEXT NOT NULL,
+  is_published BOOLEAN DEFAULT true,
+  published_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Trades
 CREATE TABLE trades (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -79,6 +92,7 @@ ALTER TABLE profiles    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cards       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_cards  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_claims ENABLE ROW LEVEL SECURITY;
+ALTER TABLE card_posts  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trades      ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: anyone can read, users can insert/update their own
@@ -89,6 +103,9 @@ CREATE POLICY "profiles_update" ON profiles FOR UPDATE USING (auth.uid() = id);
 -- Cards: anyone can read
 CREATE POLICY "cards_select" ON cards FOR SELECT USING (true);
 CREATE POLICY "cards_insert" ON cards FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "cards_update" ON cards FOR UPDATE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
 );
 CREATE POLICY "cards_delete" ON cards FOR DELETE USING (
@@ -104,6 +121,20 @@ CREATE POLICY "user_cards_delete" ON user_cards FOR DELETE USING (auth.uid() = u
 -- Daily claims
 CREATE POLICY "daily_claims_select" ON daily_claims FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "daily_claims_insert" ON daily_claims FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Homepage card posts: everyone can read published posts; admins can manage all
+CREATE POLICY "card_posts_select" ON card_posts FOR SELECT USING (
+  is_published = true OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "card_posts_insert" ON card_posts FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "card_posts_update" ON card_posts FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "card_posts_delete" ON card_posts FOR DELETE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
 
 -- Trades
 CREATE POLICY "trades_select" ON trades FOR SELECT USING (auth.uid() = from_user_id OR auth.uid() = to_user_id);
@@ -213,6 +244,46 @@ ALTER TABLE daily_claims DROP CONSTRAINT IF EXISTS daily_claims_user_id_claimed_
 ALTER TABLE daily_claims ALTER COLUMN claimed_at DROP DEFAULT;
 ALTER TABLE daily_claims ALTER COLUMN claimed_at TYPE timestamptz USING claimed_at::timestamptz;
 ALTER TABLE daily_claims ALTER COLUMN claimed_at SET DEFAULT now();
+```
+
+## Add the homepage finance card journal
+
+If your database was created before this feature existed, run this once in
+Supabase SQL Editor. It creates the editable homepage post area where an admin
+can connect a card to a finance/news explanation.
+
+```sql
+CREATE TABLE IF NOT EXISTS card_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_id UUID REFERENCES cards(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  news_source TEXT,
+  market_summary TEXT,
+  explanation TEXT NOT NULL,
+  is_published BOOLEAN DEFAULT true,
+  published_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE card_posts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "card_posts_select" ON card_posts;
+DROP POLICY IF EXISTS "card_posts_insert" ON card_posts;
+DROP POLICY IF EXISTS "card_posts_update" ON card_posts;
+DROP POLICY IF EXISTS "card_posts_delete" ON card_posts;
+
+CREATE POLICY "card_posts_select" ON card_posts FOR SELECT USING (
+  is_published = true OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "card_posts_insert" ON card_posts FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "card_posts_update" ON card_posts FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "card_posts_delete" ON card_posts FOR DELETE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
 ```
 
 ## How drop probability works
