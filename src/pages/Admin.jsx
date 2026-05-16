@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { CARD_POSTS_MISSING_MESSAGE, CARD_POSTS_TABLE, isMissingCardPostsTable } from '../lib/cardPostsSchema'
-import { CARD_TAGS, normalizeCardDates, normalizeCardTags, formatCardDate } from '../lib/cardMetadata'
+import {
+  DEFAULT_CARD_TAGS,
+  DEFAULT_TAG_COLOR,
+  formatCardDate,
+  normalizeCardDates,
+  normalizeCardTags,
+  normalizeTagColor,
+  readableTextColor,
+  withTagDetails,
+} from '../lib/cardMetadata'
 import CardDisplay from '../components/CardDisplay'
 import CardModal from '../components/CardModal'
 
@@ -10,6 +19,8 @@ const DEFAULT_WEIGHT = { common: 70, rare: 25, legendary: 5 }
 const VALID_RARITIES = Object.keys(DEFAULT_WEIGHT)
 const CARD_METADATA_MISSING_MESSAGE =
   'The live Supabase database is missing the card tags/dates migration. Run supabase/migrations/20260517090000_add_card_tags_and_dates.sql in the Supabase SQL Editor, then refresh this page.'
+const CARD_TAGS_MISSING_MESSAGE =
+  'The live Supabase database is missing the editable tags migration. Run supabase/migrations/20260517100000_create_card_tags.sql in the Supabase SQL Editor, then refresh this page.'
 
 function isMissingCardMetadata(error) {
   if (!error) return false
@@ -17,6 +28,7 @@ function isMissingCardMetadata(error) {
   return (
     message.includes('tag_names') ||
     message.includes('card_dates') ||
+    message.includes('card_tags') ||
     message.includes('admin_update_card_settings') ||
     message.includes('schema cache') ||
     message.includes('could not find the function')
@@ -26,6 +38,7 @@ function isMissingCardMetadata(error) {
 export default function Admin() {
   const [cards, setCards] = useState([])
   const [posts, setPosts] = useState([])
+  const [availableTags, setAvailableTags] = useState(DEFAULT_CARD_TAGS)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('add')
   const [selectedCard, setSelectedCard] = useState(null)
@@ -53,11 +66,18 @@ export default function Admin() {
   const [postPublished, setPostPublished] = useState(true)
   const [savingCardId, setSavingCardId] = useState('')
   const [cardDateDrafts, setCardDateDrafts] = useState({})
+  const [newTagName, setNewTagName] = useState('')
+  const [newTagColor, setNewTagColor] = useState(DEFAULT_TAG_COLOR)
+  const [tagSubmitting, setTagSubmitting] = useState(false)
+
+  useEffect(() => {
+    loadTags()
+    loadPosts()
+  }, [])
 
   useEffect(() => {
     loadCards()
-    loadPosts()
-  }, [])
+  }, [availableTags])
 
   function handleRarityChange(value) {
     setRarity(value)
@@ -66,8 +86,23 @@ export default function Admin() {
 
   async function loadCards() {
     const { data } = await supabase.from('cards').select('*').order('created_at', { ascending: false })
-    setCards(data || [])
+    setCards(data?.map(card => withTagDetails(card, availableTags)) || [])
     setLoading(false)
+  }
+
+  async function loadTags() {
+    const { data, error } = await supabase
+      .from('card_tags')
+      .select('*')
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      setAvailableTags(DEFAULT_CARD_TAGS)
+      setError(isMissingCardMetadata(error) ? CARD_TAGS_MISSING_MESSAGE : error.message)
+      return
+    }
+
+    setAvailableTags(data?.length ? data.map(tag => ({ ...tag, color: normalizeTagColor(tag.color) })) : DEFAULT_CARD_TAGS)
   }
 
   async function loadPosts() {
@@ -93,9 +128,9 @@ export default function Admin() {
 
   function toggleNewCardTag(tag) {
     setTagNames(current => (
-      current.includes(tag)
-        ? current.filter(t => t !== tag)
-        : [...current, tag]
+      current.includes(tag.name)
+        ? current.filter(t => t !== tag.name)
+        : [...current, tag.name]
     ))
   }
 
@@ -110,10 +145,10 @@ export default function Admin() {
   }
 
   function toggleCardTag(card, tag) {
-    const currentTags = normalizeCardTags(card.tag_names)
-    const nextTags = currentTags.includes(tag)
-      ? currentTags.filter(t => t !== tag)
-      : [...currentTags, tag]
+    const currentTags = normalizeCardTags(card.tag_names, availableTags)
+    const nextTags = currentTags.includes(tag.name)
+      ? currentTags.filter(t => t !== tag.name)
+      : [...currentTags, tag.name]
     updateCard(card, { tag_names: nextTags })
   }
 
@@ -149,7 +184,7 @@ export default function Admin() {
         image_url: urlData.publicUrl,
         rarity,
         rarity_weight: Number(weight),
-        tag_names: normalizeCardTags(tagNames),
+        tag_names: normalizeCardTags(tagNames, availableTags),
         card_dates: normalizeCardDates(cardDates),
       })
       if (insertError) throw insertError
@@ -182,7 +217,7 @@ export default function Admin() {
       const payload = {}
       if (changes.rarity !== undefined) payload.rarity = changes.rarity
       if (changes.rarity_weight !== undefined) payload.rarity_weight = changes.rarity_weight
-      if (changes.tag_names !== undefined) payload.tag_names = normalizeCardTags(changes.tag_names)
+      if (changes.tag_names !== undefined) payload.tag_names = normalizeCardTags(changes.tag_names, availableTags)
       if (changes.card_dates !== undefined) payload.card_dates = normalizeCardDates(changes.card_dates)
 
       const { data, error: updateError } = await supabase
@@ -193,7 +228,7 @@ export default function Admin() {
         .single()
 
       if (updateError) throw updateError
-      const savedCard = data
+      const savedCard = withTagDetails(data, availableTags)
 
       setCards(cs => cs.map(c => c.id === card.id ? savedCard : c))
       setSelectedCard(current => current?.id === card.id ? savedCard : current)
@@ -219,6 +254,49 @@ export default function Admin() {
     const savedCard = await updateCard(card, { rarity: newRarity })
     if (savedCard) {
       setSuccess(`"${card.name}" is now ${newRarity}. All inventory copies use this shared card rarity.`)
+    }
+  }
+
+  async function addTag(e) {
+    e.preventDefault()
+    const trimmedName = newTagName.trim()
+    if (!trimmedName) { setError('Please name the tag'); return }
+    if (availableTags.some(tag => tag.name.toLowerCase() === trimmedName.toLowerCase())) {
+      setError('A tag with that name already exists')
+      return
+    }
+
+    setTagSubmitting(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const tag = { name: trimmedName, color: normalizeTagColor(newTagColor) }
+      const { error: insertError } = await supabase.from('card_tags').insert(tag)
+      if (insertError) throw insertError
+      setAvailableTags(tags => [...tags, tag])
+      setNewTagName('')
+      setNewTagColor(DEFAULT_TAG_COLOR)
+      setSuccess(`"${trimmedName}" tag created.`)
+    } catch (err) {
+      setError(isMissingCardMetadata(err) ? CARD_TAGS_MISSING_MESSAGE : err.message)
+    } finally {
+      setTagSubmitting(false)
+    }
+  }
+
+  async function updateTagColor(tag, color) {
+    const nextColor = normalizeTagColor(color)
+    setAvailableTags(tags => tags.map(t => t.name === tag.name ? { ...t, color: nextColor } : t))
+
+    const { error: updateError } = await supabase
+      .from('card_tags')
+      .update({ color: nextColor })
+      .eq('name', tag.name)
+
+    if (updateError) {
+      setError(isMissingCardMetadata(updateError) ? CARD_TAGS_MISSING_MESSAGE : updateError.message)
+      loadTags()
     }
   }
 
@@ -298,6 +376,7 @@ export default function Admin() {
         {[
           { key: 'add',   label: 'Add Card' },
           { key: 'cards', label: `Manage Cards (${cards.length})` },
+          { key: 'tags', label: `Tags (${availableTags.length})` },
           { key: 'posts', label: `Homepage Posts (${posts.length})` },
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
@@ -355,22 +434,26 @@ export default function Admin() {
             <div>
               <label className="block text-sm text-navy/60 mb-2 font-medium">Tags</label>
               <div className="flex flex-wrap gap-2">
-                {CARD_TAGS.map(tag => (
+                {availableTags.map(tag => (
                   <label
-                    key={tag}
+                    key={tag.name}
                     className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold cursor-pointer transition-colors ${
-                      tagNames.includes(tag)
-                        ? 'bg-gold/20 border-gold text-gold-dark'
+                      tagNames.includes(tag.name)
+                        ? 'border-transparent'
                         : 'bg-mist border-navy/15 text-navy/60 hover:border-gold/50'
                     }`}
+                    style={tagNames.includes(tag.name) ? {
+                      backgroundColor: tag.color,
+                      color: readableTextColor(tag.color),
+                    } : undefined}
                   >
                     <input
                       type="checkbox"
-                      checked={tagNames.includes(tag)}
+                      checked={tagNames.includes(tag.name)}
                       onChange={() => toggleNewCardTag(tag)}
                       className="h-4 w-4 accent-gold"
                     />
-                    {tag}
+                    {tag.name}
                   </label>
                 ))}
               </div>
@@ -423,6 +506,79 @@ export default function Admin() {
               {submitting ? 'Uploading...' : 'Add Card'}
             </button>
           </form>
+        </div>
+      )}
+
+      {tab === 'tags' && (
+        <div className="space-y-6">
+          {error && <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 text-sm">{error}</div>}
+          {success && <div className="bg-green-50 border border-green-300 text-green-700 rounded-lg p-3 text-sm">{success}</div>}
+
+          <div className="bg-white rounded-2xl p-8 border border-navy/10 shadow-lg">
+            <h2 className="text-xl font-bold text-navy mb-6">Create Tag</h2>
+            <form onSubmit={addTag} className="grid grid-cols-1 md:grid-cols-[1fr_150px_auto] gap-4 items-end">
+              <div>
+                <label className="block text-sm text-navy/60 mb-1 font-medium">Tag Name</label>
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={e => setNewTagName(e.target.value)}
+                  placeholder="Example: Derivatives"
+                  maxLength={40}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-navy/60 mb-1 font-medium">Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={newTagColor}
+                    onChange={e => setNewTagColor(e.target.value)}
+                    className="h-11 w-14 rounded-lg border border-navy/15 bg-white cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={newTagColor}
+                    onChange={e => setNewTagColor(e.target.value)}
+                    className="min-w-0 flex-1 bg-mist border border-navy/15 rounded-lg px-2 py-2.5 text-sm text-navy focus:outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={tagSubmitting}
+                className="bg-gold hover:bg-gold-dark disabled:opacity-50 text-navy-dark px-5 py-3 rounded-xl font-bold transition-colors"
+              >
+                {tagSubmitting ? 'Creating...' : 'Create Tag'}
+              </button>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-2xl p-8 border border-navy/10 shadow-lg">
+            <h2 className="text-xl font-bold text-navy mb-4">Existing Tags</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {availableTags.map(tag => (
+                <div key={tag.name} className="flex items-center justify-between gap-3 border border-navy/10 rounded-lg p-3">
+                  <span
+                    className="px-3 py-1 rounded-full text-xs font-bold"
+                    style={{ backgroundColor: tag.color, color: readableTextColor(tag.color) }}
+                  >
+                    {tag.name}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={tag.color}
+                      onChange={e => updateTagColor(tag, e.target.value)}
+                      className="h-9 w-12 rounded border border-navy/15 bg-white cursor-pointer"
+                    />
+                    <span className="text-xs font-mono text-navy/45 w-16">{tag.color}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -620,21 +776,25 @@ export default function Admin() {
 
                       <label className="block text-[11px] text-navy/40 mt-3 mb-1">Tags</label>
                       <div className="flex flex-wrap gap-1">
-                        {CARD_TAGS.map(tag => {
-                          const checked = normalizeCardTags(card.tag_names).includes(tag)
+                        {availableTags.map(tag => {
+                          const checked = normalizeCardTags(card.tag_names, availableTags).includes(tag.name)
                           return (
                             <button
-                              key={tag}
+                              key={tag.name}
                               type="button"
                               onClick={() => toggleCardTag(card, tag)}
                               disabled={savingCardId === card.id}
                               className={`px-2 py-1 rounded-full text-[10px] font-bold border transition-colors ${
                                 checked
-                                  ? 'bg-gold/20 border-gold text-gold-dark'
+                                  ? 'border-transparent'
                                   : 'bg-mist border-navy/10 text-navy/45 hover:border-gold/50'
                               }`}
+                              style={checked ? {
+                                backgroundColor: tag.color,
+                                color: readableTextColor(tag.color),
+                              } : undefined}
                             >
-                              {tag}
+                              {tag.name}
                             </button>
                           )
                         })}

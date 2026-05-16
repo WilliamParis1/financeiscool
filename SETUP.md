@@ -37,8 +37,14 @@ CREATE TABLE cards (
   rarity_weight INTEGER NOT NULL DEFAULT 70,
   tag_names TEXT[] NOT NULL DEFAULT '{}',
   card_dates DATE[] NOT NULL DEFAULT '{}',
-  CHECK (tag_names <@ ARRAY['News May 2026', 'CFA Level 1', 'Python', 'French history']::TEXT[]),
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE card_tags (
+  name TEXT PRIMARY KEY,
+  color TEXT NOT NULL DEFAULT '#c9a24b',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CHECK (color ~ '^#[0-9A-Fa-f]{6}$')
 );
 
 -- User card collection
@@ -96,6 +102,7 @@ ALTER TABLE cards       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_cards  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_claims ENABLE ROW LEVEL SECURITY;
 ALTER TABLE card_posts  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE card_tags   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trades      ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: anyone can read, users can insert/update their own
@@ -136,6 +143,18 @@ CREATE POLICY "card_posts_update" ON card_posts FOR UPDATE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
 );
 CREATE POLICY "card_posts_delete" ON card_posts FOR DELETE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+
+-- Card tags: everyone can read; admins can manage the tag catalog
+CREATE POLICY "card_tags_select" ON card_tags FOR SELECT USING (true);
+CREATE POLICY "card_tags_insert" ON card_tags FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "card_tags_update" ON card_tags FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "card_tags_delete" ON card_tags FOR DELETE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
 );
 

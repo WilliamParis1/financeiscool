@@ -1,4 +1,4 @@
-import { formatCardDate, normalizeCardDates, normalizeCardTags } from '../lib/cardMetadata'
+import { formatCardDate, getTagDetails, normalizeCardDates, readableTextColor } from '../lib/cardMetadata'
 
 const RARITY_STYLES = {
   common:    { border: 'border-navy/25', badge: 'bg-navy/10 text-navy',     label: 'Common',    glow: '' },
@@ -9,7 +9,7 @@ const RARITY_STYLES = {
 export default function CardModal({ card, onClose, actions }) {
   if (!card) return null
   const style = RARITY_STYLES[card.rarity] || RARITY_STYLES.common
-  const tags = normalizeCardTags(card.tag_names)
+  const tags = card.tag_details || getTagDetails(card.tag_names)
   const dates = normalizeCardDates(card.card_dates)
 
   return (
@@ -44,8 +44,12 @@ export default function CardModal({ card, onClose, actions }) {
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
               {tags.map(tag => (
-                <span key={tag} className="bg-gold/15 text-gold-dark px-3 py-1 rounded-full text-xs font-bold">
-                  {tag}
+                <span
+                  key={tag.name}
+                  className="px-3 py-1 rounded-full text-xs font-bold"
+                  style={{ backgroundColor: tag.color, color: readableTextColor(tag.color) }}
+                >
+                  {tag.name}
                 </span>
               ))}
             </div>

@@ -1,4 +1,4 @@
-import { normalizeCardTags } from '../lib/cardMetadata'
+import { getTagDetails, readableTextColor } from '../lib/cardMetadata'
 
 const RARITY_STYLES = {
   common: {
@@ -24,7 +24,7 @@ const RARITY_STYLES = {
 export default function CardDisplay({ card, onClick, small = false }) {
   const style = RARITY_STYLES[card.rarity] || RARITY_STYLES.common
   const isLegendary = card.rarity === 'legendary'
-  const tags = normalizeCardTags(card.tag_names)
+  const tags = card.tag_details || getTagDetails(card.tag_names)
 
   return (
     <div
@@ -61,8 +61,12 @@ export default function CardDisplay({ card, onClick, small = false }) {
         {tags.length > 0 && !small && (
           <div className="flex flex-wrap gap-1 mt-2">
             {tags.slice(0, 2).map(tag => (
-              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-gold/15 text-gold-dark font-semibold">
-                {tag}
+              <span
+                key={tag.name}
+                className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                style={{ backgroundColor: tag.color, color: readableTextColor(tag.color) }}
+              >
+                {tag.name}
               </span>
             ))}
             {tags.length > 2 && (
