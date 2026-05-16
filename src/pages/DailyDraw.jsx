@@ -5,6 +5,12 @@ import CardDisplay from '../components/CardDisplay'
 import CardModal from '../components/CardModal'
 import GlowButton from '../components/GlowButton'
 
+// ─────────────────────────────────────────────────────────────────────────
+// Cooldown between draws. Set to 1 minute for testing.
+// For a real daily draw, set this back to: 24 * 60 * 60 * 1000  (24 hours)
+const CLAIM_COOLDOWN_MS = 60 * 1000
+// ─────────────────────────────────────────────────────────────────────────
+
 // Picks a card using each card's own drop weight (set by the game master in
 // the admin panel). A higher weight = more likely to be drawn.
 function pickWeightedCard(cards) {
@@ -24,7 +30,6 @@ const RARITY = {
   common:    { text: '✦ Card obtained!', color: '#0a1f44', sparkles: 6  },
 }
 
-// Pre-computed sparkle vectors (radial burst)
 function makeSparkles(n) {
   return Array.from({ length: n }).map((_, i) => {
     const angle = (i / n) * Math.PI * 2 + Math.random() * 0.4
@@ -37,52 +42,60 @@ function makeSparkles(n) {
   })
 }
 
+function formatRemaining(ms) {
+  const total = Math.ceil(ms / 1000)
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  if (m >= 60) {
+    const h = Math.floor(m / 60)
+    return `${h}h ${m % 60}m ${s}s`
+  }
+  return m > 0 ? `${m}m ${s}s` : `${s}s`
+}
+
 export default function DailyDraw() {
   const { user } = useAuth()
-  const [todayClaim, setTodayClaim] = useState(null)
+  const [lastCard, setLastCard] = useState(null)
+  const [lastClaimAt, setLastClaimAt] = useState(null)   // ms timestamp or null
   const [revealing, setRevealing] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [newCard, setNewCard] = useState(null)
   const [selectedCard, setSelectedCard] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [timeUntilNext, setTimeUntilNext] = useState('')
   const [flash, setFlash] = useState(false)
+  const [now, setNow] = useState(Date.now())
 
-  useEffect(() => { checkTodayClaim() }, [user])
+  useEffect(() => { checkLastClaim() }, [user])
 
   useEffect(() => {
-    updateCountdown()
-    const timer = setInterval(updateCountdown, 1000)
-    return () => clearInterval(timer)
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
   }, [])
 
-  function updateCountdown() {
-    const now = new Date()
-    const tomorrow = new Date(now)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    tomorrow.setHours(0, 0, 0, 0)
-    const diff = tomorrow - now
-    const h = Math.floor(diff / 3600000)
-    const m = Math.floor((diff % 3600000) / 60000)
-    const s = Math.floor((diff % 60000) / 1000)
-    setTimeUntilNext(`${h}h ${m}m ${s}s`)
-  }
+  const cooldownEndsAt = lastClaimAt ? lastClaimAt + CLAIM_COOLDOWN_MS : 0
+  const onCooldown = lastClaimAt != null && now < cooldownEndsAt
+  const remainingMs = Math.max(0, cooldownEndsAt - now)
 
-  async function checkTodayClaim() {
-    const today = new Date().toISOString().split('T')[0]
+  async function checkLastClaim() {
     const { data } = await supabase
       .from('daily_claims')
-      .select('*, cards(*)')
+      .select('claimed_at, cards(*)')
       .eq('user_id', user.id)
-      .eq('claimed_at', today)
-      .single()
-    if (data) setTodayClaim(data.cards)
+      .order('claimed_at', { ascending: false })
+      .limit(1)
+    const row = data?.[0]
+    if (row) {
+      setLastCard(row.cards)
+      setLastClaimAt(new Date(row.claimed_at).getTime())
+    }
     setLoading(false)
   }
 
   async function claimCard() {
+    if (onCooldown) return
     setRevealing(true)
+    setRevealed(false)
     setError('')
 
     try {
@@ -92,18 +105,13 @@ export default function DailyDraw() {
       }
 
       const card = pickWeightedCard(cards)
-      const today = new Date().toISOString().split('T')[0]
 
       const { error: claimError } = await supabase.from('daily_claims').insert({
         user_id: user.id,
         card_id: card.id,
-        claimed_at: today,
+        claimed_at: new Date().toISOString(),
       })
-
-      if (claimError) {
-        if (claimError.code === '23505') throw new Error('You already claimed your card today!')
-        throw new Error(claimError.message)
-      }
+      if (claimError) throw new Error(claimError.message)
 
       const { data: existing } = await supabase
         .from('user_cards')
@@ -118,13 +126,13 @@ export default function DailyDraw() {
         await supabase.from('user_cards').insert({ user_id: user.id, card_id: card.id, quantity: 1 })
       }
 
-      // Build-up spin, then a flashy reveal
       setTimeout(() => {
         setFlash(true)
         setNewCard(card)
         setRevealing(false)
         setRevealed(true)
-        setTodayClaim(card)
+        setLastCard(card)
+        setLastClaimAt(Date.now())
         setTimeout(() => setFlash(false), 600)
       }, 1400)
     } catch (err) {
@@ -143,73 +151,36 @@ export default function DailyDraw() {
       {flash && <div className="screen-flash" />}
 
       <h1 className="text-4xl font-extrabold text-navy mb-2">Daily Card Draw</h1>
-      <p className="text-navy/50 mb-10">One free card every day — come back tomorrow for another!</p>
+      <p className="text-navy/50 mb-10">
+        A fresh card every minute <span className="text-gold-dark font-semibold">(testing mode)</span>
+      </p>
 
       {error && (
         <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 mb-6 text-sm">{error}</div>
       )}
 
-      {todayClaim && !revealed ? (
-        /* ---------- Already claimed ---------- */
-        <div className="flex flex-col items-center gap-6">
-          <p className="text-green-700 font-semibold bg-green-50 border border-green-200 px-4 py-2 rounded-full">
-            ✓ You already claimed today's card!
-          </p>
-          <CardDisplay card={todayClaim} onClick={setSelectedCard} />
-          <p className="text-navy/50 text-sm">
-            Next card in: <span className="text-gold-dark font-mono font-bold">{timeUntilNext}</span>
-          </p>
-        </div>
-
-      ) : !revealed ? (
-        /* ---------- Idle / Drawing ---------- */
+      {revealing ? (
+        /* ---------- Drawing ---------- */
         <div className="flex flex-col items-center gap-10">
           <div className="relative w-56 h-72 flex items-center justify-center">
-            {/* glow halo */}
             <div className="absolute inset-0 rounded-2xl blur-2xl bg-gold/30" />
-            <div className={[
-              'mystery-card relative w-52 h-72 rounded-2xl flex items-center justify-center',
-              'bg-gradient-to-br from-navy via-navy-mid to-navy-dark',
-              'border-2 border-gold/60 shadow-2xl',
-              revealing ? 'draw-spin' : 'shine-sweep',
-            ].join(' ')}>
-              <div className="relative z-10 text-center">
-                {revealing ? (
-                  <div className="text-gold text-6xl animate-spin">✦</div>
-                ) : (
-                  <>
-                    <div className="text-7xl mb-2 drop-shadow-lg">🎴</div>
-                    <p className="text-gold-light text-sm font-semibold tracking-widest uppercase">
-                      Mystery
-                    </p>
-                  </>
-                )}
-              </div>
+            <div className="mystery-card draw-spin relative w-52 h-72 rounded-2xl flex items-center justify-center bg-gradient-to-br from-navy via-navy-mid to-navy-dark border-2 border-gold/60 shadow-2xl">
+              <div className="relative z-10 text-gold text-6xl animate-spin">✦</div>
             </div>
           </div>
-
-          <GlowButton
-            onClick={claimCard}
-            disabled={revealing}
-            className="px-14 py-4 text-lg disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {revealing ? 'Drawing your card…' : "Claim Today's Card"}
-          </GlowButton>
+          <p className="text-navy/50 font-semibold">Drawing your card…</p>
         </div>
 
-      ) : (
+      ) : revealed && newCard ? (
         /* ---------- Reveal ---------- */
         <div className="flex flex-col items-center gap-6">
           <div
             className="relative flex items-center justify-center w-72 h-96"
             style={{ color: rarityCfg.color }}
           >
-            {/* rays + shockwave behind the card */}
             <div className="ray-burst rounded-full" />
             <div className="shockwave" />
             <div className="shockwave" style={{ animationDelay: '0.12s' }} />
-
-            {/* sparkle particles */}
             {sparkles.map((s, i) => (
               <span
                 key={i}
@@ -217,22 +188,52 @@ export default function DailyDraw() {
                 style={{ '--dx': s.dx, '--dy': s.dy, animationDelay: s.delay }}
               />
             ))}
-
             <div className="reveal-card relative z-10">
               <CardDisplay card={newCard} onClick={setSelectedCard} />
             </div>
           </div>
 
-          <p
-            className="text-3xl font-extrabold tracking-wide"
-            style={{ color: rarityCfg.color }}
-          >
+          <p className="text-3xl font-extrabold tracking-wide" style={{ color: rarityCfg.color }}>
             {rarityCfg.text}
           </p>
           <p className="text-navy font-semibold text-lg">{newCard?.name}</p>
-          <p className="text-navy/50 text-sm">
-            Next card in: <span className="text-gold-dark font-mono font-bold">{timeUntilNext}</span>
+
+          {onCooldown ? (
+            <p className="text-navy/50 text-sm">
+              Next card in: <span className="text-gold-dark font-mono font-bold">{formatRemaining(remainingMs)}</span>
+            </p>
+          ) : (
+            <GlowButton onClick={claimCard} className="px-14 py-4 text-lg">Draw Again</GlowButton>
+          )}
+        </div>
+
+      ) : onCooldown ? (
+        /* ---------- Cooldown ---------- */
+        <div className="flex flex-col items-center gap-6">
+          <p className="text-green-700 font-semibold bg-green-50 border border-green-200 px-4 py-2 rounded-full">
+            ✓ Card claimed!
           </p>
+          {lastCard && <CardDisplay card={lastCard} onClick={setSelectedCard} />}
+          <p className="text-navy/50 text-sm">
+            Next card in: <span className="text-gold-dark font-mono font-bold">{formatRemaining(remainingMs)}</span>
+          </p>
+        </div>
+
+      ) : (
+        /* ---------- Idle / ready ---------- */
+        <div className="flex flex-col items-center gap-10">
+          <div className="relative w-56 h-72 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-2xl blur-2xl bg-gold/30" />
+            <div className="mystery-card shine-sweep relative w-52 h-72 rounded-2xl flex items-center justify-center bg-gradient-to-br from-navy via-navy-mid to-navy-dark border-2 border-gold/60 shadow-2xl">
+              <div className="relative z-10 text-center">
+                <div className="text-7xl mb-2 drop-shadow-lg">🎴</div>
+                <p className="text-gold-light text-sm font-semibold tracking-widest uppercase">Mystery</p>
+              </div>
+            </div>
+          </div>
+          <GlowButton onClick={claimCard} className="px-14 py-4 text-lg">
+            {lastClaimAt ? 'Draw Again' : "Claim Today's Card"}
+          </GlowButton>
         </div>
       )}
 

@@ -48,13 +48,12 @@ CREATE TABLE user_cards (
   UNIQUE(user_id, card_id)
 );
 
--- Daily claims (one per user per day)
+-- Daily claims (cooldown enforced in the app; see CLAIM_COOLDOWN_MS)
 CREATE TABLE daily_claims (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   card_id UUID REFERENCES cards(id) ON DELETE CASCADE NOT NULL,
-  claimed_at DATE NOT NULL DEFAULT CURRENT_DATE,
-  UNIQUE(user_id, claimed_at)
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Trades
@@ -194,6 +193,27 @@ npm run dev
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
 6. Deploy!
+
+## Changing the draw cooldown
+
+The time between draws is controlled by one constant in
+`src/pages/DailyDraw.jsx`:
+
+```js
+const CLAIM_COOLDOWN_MS = 60 * 1000          // 1 minute (testing)
+// For a real once-per-day draw use:
+// const CLAIM_COOLDOWN_MS = 24 * 60 * 60 * 1000
+```
+
+**One-time database migration** (run once in Supabase SQL Editor — needed
+because the original schema only allowed one claim per calendar day):
+
+```sql
+ALTER TABLE daily_claims DROP CONSTRAINT IF EXISTS daily_claims_user_id_claimed_at_key;
+ALTER TABLE daily_claims ALTER COLUMN claimed_at DROP DEFAULT;
+ALTER TABLE daily_claims ALTER COLUMN claimed_at TYPE timestamptz USING claimed_at::timestamptz;
+ALTER TABLE daily_claims ALTER COLUMN claimed_at SET DEFAULT now();
+```
 
 ## How drop probability works
 
