@@ -8,6 +8,20 @@ import CardModal from '../components/CardModal'
 // Suggested default weight per rarity (game master can override per card)
 const DEFAULT_WEIGHT = { common: 70, rare: 25, legendary: 5 }
 const VALID_RARITIES = Object.keys(DEFAULT_WEIGHT)
+const CARD_METADATA_MISSING_MESSAGE =
+  'The live Supabase database is missing the card tags/dates migration. Run supabase/migrations/20260517090000_add_card_tags_and_dates.sql in the Supabase SQL Editor, then refresh this page.'
+
+function isMissingCardMetadata(error) {
+  if (!error) return false
+  const message = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`.toLowerCase()
+  return (
+    message.includes('tag_names') ||
+    message.includes('card_dates') ||
+    message.includes('admin_update_card_settings') ||
+    message.includes('schema cache') ||
+    message.includes('could not find the function')
+  )
+}
 
 export default function Admin() {
   const [cards, setCards] = useState([])
@@ -165,23 +179,28 @@ export default function Admin() {
     setSuccess('')
 
     try {
-      const { data, error: updateError } = await supabase.rpc('admin_update_card_settings', {
-        target_card_id: card.id,
-        new_rarity: changes.rarity ?? null,
-        new_rarity_weight: changes.rarity_weight ?? null,
-        new_tag_names: changes.tag_names ?? null,
-        new_card_dates: changes.card_dates ?? null,
-      })
+      const payload = {}
+      if (changes.rarity !== undefined) payload.rarity = changes.rarity
+      if (changes.rarity_weight !== undefined) payload.rarity_weight = changes.rarity_weight
+      if (changes.tag_names !== undefined) payload.tag_names = normalizeCardTags(changes.tag_names)
+      if (changes.card_dates !== undefined) payload.card_dates = normalizeCardDates(changes.card_dates)
+
+      const { data, error: updateError } = await supabase
+        .from('cards')
+        .update(payload)
+        .eq('id', card.id)
+        .select()
+        .single()
 
       if (updateError) throw updateError
-      const savedCard = Array.isArray(data) ? data[0] : data
+      const savedCard = data
 
       setCards(cs => cs.map(c => c.id === card.id ? savedCard : c))
       setSelectedCard(current => current?.id === card.id ? savedCard : current)
       loadPosts()
       return savedCard
     } catch (err) {
-      setError(`Could not save "${card.name}": ${err.message}`)
+      setError(`Could not save "${card.name}": ${isMissingCardMetadata(err) ? CARD_METADATA_MISSING_MESSAGE : err.message}`)
       loadCards()
       return null
     } finally {
