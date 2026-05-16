@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #0f0f1a;
+  min-height: 100vh;
+}
+
+.card-legendary {
+  animation: legendary-pulse 2s ease-in-out infinite;
+}
+
+@keyframes legendary-pulse {
+  0%, 100% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.6); }
+  50% { box-shadow: 0 0 45px rgba(245, 158, 11, 0.9), 0 0 70px rgba(245, 158, 11, 0.4); }
+}

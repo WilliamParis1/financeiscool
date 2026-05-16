@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(cd \"C:\\\\Users\\\\willi\\\\Desktop\\\\financeisfun\"; Remove-Item script.js, style.css -Force; Write-Output \"Removed stray files. Final root contents:\"; Get-ChildItem -Name | Where-Object { $_ -ne 'node_modules' -and $_ -ne 'dist' })"
+    ]
+  }
+}
