@@ -40,6 +40,7 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6">
+            <Link to="/" className={linkClass}>Home</Link>
             <Link to="/daily" className={linkClass}>🎴 Daily Draw</Link>
             <Link to="/collection" className={linkClass}>👜 Collection</Link>
             <Link to="/leaderboard" className={linkClass}>🏆 Leaderboard</Link>
@@ -121,6 +122,7 @@ export default function Navbar() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden py-4 flex flex-col gap-4 border-t border-navy/10">
+            <Link to="/" className={linkClass} onClick={() => setMenuOpen(false)}>Home</Link>
             <Link to="/daily" className={linkClass} onClick={() => setMenuOpen(false)}>🎴 Daily Draw</Link>
             <Link to="/collection" className={linkClass} onClick={() => setMenuOpen(false)}>👜 Collection</Link>
             <Link to="/leaderboard" className={linkClass} onClick={() => setMenuOpen(false)}>🏆 Leaderboard</Link>
