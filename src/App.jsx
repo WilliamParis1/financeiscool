@@ -16,7 +16,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen bg-[#0f0f1a] text-gray-100">
+        <div className="min-h-screen bg-white text-navy">
           <Navbar />
           <main className="container mx-auto px-4 py-8">
             <Routes>

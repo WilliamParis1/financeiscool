@@ -37,14 +37,14 @@ export default function Leaderboard() {
     .sort((a, b) => tab === 'legendary' ? b.legendary - a.legendary : tab === 'rare' ? b.rare - a.rare : b.total - a.total)
     .slice(0, 50)
 
-  const MEDALS = ['text-amber-400', 'text-gray-300', 'text-amber-700']
+  const MEDALS = ['text-gold-dark', 'text-navy/50', 'text-amber-700']
 
-  if (loading) return <div className="text-center py-20 text-purple-400 animate-pulse">Loading...</div>
+  if (loading) return <div className="text-center py-20 text-navy/50 animate-pulse">Loading...</div>
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold text-purple-300 mb-2">Leaderboard</h1>
-      <p className="text-gray-500 mb-6">Top collectors in CardQuest</p>
+      <h1 className="text-3xl font-extrabold text-navy mb-2">Leaderboard</h1>
+      <p className="text-navy/50 mb-6">Top collectors in Finance is Cool Cards</p>
 
       <div className="flex gap-2 mb-6 flex-wrap">
         {[
@@ -55,8 +55,8 @@ export default function Leaderboard() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              tab === key ? 'bg-purple-600 text-white' : 'bg-[#1a1a2e] text-gray-400 hover:text-white border border-purple-900/30'
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+              tab === key ? 'bg-navy text-white' : 'bg-white text-navy/60 hover:text-navy border border-navy/15'
             }`}
           >
             {label}
@@ -64,32 +64,32 @@ export default function Leaderboard() {
         ))}
       </div>
 
-      <div className="bg-[#1a1a2e] rounded-2xl border border-purple-900/30 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-navy/10 shadow-lg overflow-hidden">
         {sorted.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">No players yet — be the first!</div>
+          <div className="text-center py-12 text-navy/50">No players yet — be the first!</div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="border-b border-purple-900/30 text-sm">
-                <th className="text-left p-4 text-gray-500 font-medium w-10">#</th>
-                <th className="text-left p-4 text-gray-500 font-medium">Player</th>
-                <th className="text-right p-4 text-gray-500 font-medium">Total</th>
-                <th className="text-right p-4 text-amber-500 font-medium">★</th>
-                <th className="text-right p-4 text-blue-500 font-medium">◆</th>
+              <tr className="border-b border-navy/10 text-sm bg-mist">
+                <th className="text-left p-4 text-navy/50 font-semibold w-10">#</th>
+                <th className="text-left p-4 text-navy/50 font-semibold">Player</th>
+                <th className="text-right p-4 text-navy/50 font-semibold">Total</th>
+                <th className="text-right p-4 text-gold-dark font-semibold">★</th>
+                <th className="text-right p-4 text-blue-600 font-semibold">◆</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((player, i) => (
-                <tr key={player.username} className="border-b border-purple-900/20 hover:bg-purple-900/10 transition-colors">
-                  <td className={`p-4 font-bold ${MEDALS[i] || 'text-gray-500'}`}>{i + 1}</td>
+                <tr key={player.username} className="border-b border-navy/5 hover:bg-mist transition-colors">
+                  <td className={`p-4 font-bold ${MEDALS[i] || 'text-navy/40'}`}>{i + 1}</td>
                   <td className="p-4">
-                    <Link to={`/profile/${player.username}`} className="text-gray-200 hover:text-purple-400 transition-colors font-medium">
+                    <Link to={`/profile/${player.username}`} className="text-navy hover:text-gold-dark transition-colors font-semibold">
                       {player.username}
                     </Link>
                   </td>
-                  <td className="p-4 text-right text-gray-300">{player.total}</td>
-                  <td className="p-4 text-right text-amber-400 font-medium">{player.legendary}</td>
-                  <td className="p-4 text-right text-blue-400">{player.rare}</td>
+                  <td className="p-4 text-right text-navy">{player.total}</td>
+                  <td className="p-4 text-right text-gold-dark font-semibold">{player.legendary}</td>
+                  <td className="p-4 text-right text-blue-600">{player.rare}</td>
                 </tr>
               ))}
             </tbody>

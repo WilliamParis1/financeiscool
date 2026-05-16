@@ -124,17 +124,22 @@ export default function Trade() {
   }
 
   const statusStyle = {
-    pending:   'bg-yellow-900 text-yellow-300',
-    accepted:  'bg-green-900 text-green-300',
-    rejected:  'bg-red-900 text-red-300',
-    cancelled: 'bg-gray-800 text-gray-400',
+    pending:   'bg-amber-100 text-amber-700',
+    accepted:  'bg-green-100 text-green-700',
+    rejected:  'bg-red-100 text-red-700',
+    cancelled: 'bg-navy/10 text-navy/50',
   }
 
-  if (loading) return <div className="text-center py-20 text-purple-400 animate-pulse">Loading...</div>
+  const tabBtn = active =>
+    `px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+      active ? 'bg-navy text-white' : 'bg-white text-navy/60 hover:text-navy border border-navy/15'
+    }`
+
+  if (loading) return <div className="text-center py-20 text-navy/50 animate-pulse">Loading...</div>
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-purple-300 mb-6">Trades</h1>
+      <h1 className="text-3xl font-extrabold text-navy mb-6">Trades</h1>
 
       <div className="flex gap-2 mb-6 flex-wrap">
         {[
@@ -142,10 +147,7 @@ export default function Trade() {
           { key: 'outgoing', label: `Sent (${outgoing.length})` },
           { key: 'new',      label: '+ New Trade' },
         ].map(({ key, label }) => (
-          <button key={key} onClick={() => setTab(key)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              tab === key ? 'bg-purple-600 text-white' : 'bg-[#1a1a2e] text-gray-400 hover:text-white border border-purple-900/30'
-            }`}>
+          <button key={key} onClick={() => setTab(key)} className={tabBtn(tab === key)}>
             {label}
           </button>
         ))}
@@ -155,37 +157,37 @@ export default function Trade() {
       {tab === 'incoming' && (
         <div className="space-y-4">
           {incoming.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 bg-[#1a1a2e] rounded-2xl border border-purple-900/30">
+            <div className="text-center py-12 text-navy/50 bg-white rounded-2xl border border-navy/10 shadow-sm">
               No incoming trade offers
             </div>
           ) : incoming.map(trade => (
-            <div key={trade.id} className="bg-[#1a1a2e] rounded-xl p-5 border border-purple-900/30">
-              <p className="text-sm text-gray-400 mb-4">
-                From <span className="text-purple-300 font-medium">{trade.from_profile?.username}</span>
+            <div key={trade.id} className="bg-white rounded-xl p-5 border border-navy/10 shadow-sm">
+              <p className="text-sm text-navy/50 mb-4">
+                From <span className="text-navy font-semibold">{trade.from_profile?.username}</span>
               </p>
               <div className="flex gap-6 items-center flex-wrap">
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">They offer</p>
+                  <p className="text-xs text-navy/40 mb-2">They offer</p>
                   {trade.offered_card && <CardDisplay card={trade.offered_card} small />}
                 </div>
                 {trade.requested_card && (
                   <>
-                    <div className="text-gray-500 text-2xl">⇌</div>
+                    <div className="text-gold text-2xl">⇌</div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-2">They want</p>
+                      <p className="text-xs text-navy/40 mb-2">They want</p>
                       <CardDisplay card={trade.requested_card} small />
                     </div>
                   </>
                 )}
               </div>
-              {trade.message && <p className="text-gray-400 text-sm mt-3 italic">"{trade.message}"</p>}
+              {trade.message && <p className="text-navy/60 text-sm mt-3 italic">"{trade.message}"</p>}
               <div className="flex gap-3 mt-4">
                 <button onClick={() => respondTrade(trade, 'accepted')}
-                  className="bg-green-700 hover:bg-green-600 text-white px-5 py-2 rounded-lg text-sm transition-colors font-medium">
+                  className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm transition-colors font-semibold">
                   Accept
                 </button>
                 <button onClick={() => respondTrade(trade, 'rejected')}
-                  className="bg-red-900 hover:bg-red-800 text-white px-5 py-2 rounded-lg text-sm transition-colors">
+                  className="bg-red-100 hover:bg-red-200 text-red-700 px-5 py-2 rounded-lg text-sm transition-colors font-semibold">
                   Reject
                 </button>
               </div>
@@ -198,29 +200,29 @@ export default function Trade() {
       {tab === 'outgoing' && (
         <div className="space-y-4">
           {outgoing.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 bg-[#1a1a2e] rounded-2xl border border-purple-900/30">
+            <div className="text-center py-12 text-navy/50 bg-white rounded-2xl border border-navy/10 shadow-sm">
               No sent trades
             </div>
           ) : outgoing.map(trade => (
-            <div key={trade.id} className="bg-[#1a1a2e] rounded-xl p-5 border border-purple-900/30">
+            <div key={trade.id} className="bg-white rounded-xl p-5 border border-navy/10 shadow-sm">
               <div className="flex justify-between items-start mb-3">
-                <p className="text-sm text-gray-400">
-                  To <span className="text-purple-300 font-medium">{trade.to_profile?.username}</span>
+                <p className="text-sm text-navy/50">
+                  To <span className="text-navy font-semibold">{trade.to_profile?.username}</span>
                 </p>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${statusStyle[trade.status]}`}>
+                <span className={`text-xs px-2 py-1 rounded-full font-semibold capitalize ${statusStyle[trade.status]}`}>
                   {trade.status}
                 </span>
               </div>
               <div className="flex gap-6 items-center flex-wrap">
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">You offer</p>
+                  <p className="text-xs text-navy/40 mb-2">You offer</p>
                   {trade.offered_card && <CardDisplay card={trade.offered_card} small />}
                 </div>
                 {trade.requested_card && (
                   <>
-                    <div className="text-gray-500 text-2xl">⇌</div>
+                    <div className="text-gold text-2xl">⇌</div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-2">You want</p>
+                      <p className="text-xs text-navy/40 mb-2">You want</p>
                       <CardDisplay card={trade.requested_card} small />
                     </div>
                   </>
@@ -228,7 +230,7 @@ export default function Trade() {
               </div>
               {trade.status === 'pending' && (
                 <button onClick={() => cancelTrade(trade.id)}
-                  className="mt-4 bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm transition-colors">
+                  className="mt-4 bg-navy/10 hover:bg-navy/20 text-navy px-4 py-2 rounded-lg text-sm transition-colors">
                   Cancel
                 </button>
               )}
@@ -239,30 +241,30 @@ export default function Trade() {
 
       {/* New trade */}
       {tab === 'new' && (
-        <div className="bg-[#1a1a2e] rounded-2xl p-6 border border-purple-900/30 space-y-8">
-          {tradeError && <div className="bg-red-900/30 border border-red-700 text-red-300 rounded-lg p-3 text-sm">{tradeError}</div>}
-          {tradeSuccess && <div className="bg-green-900/30 border border-green-700 text-green-300 rounded-lg p-3 text-sm">{tradeSuccess}</div>}
+        <div className="bg-white rounded-2xl p-6 border border-navy/10 shadow-lg space-y-8">
+          {tradeError && <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 text-sm">{tradeError}</div>}
+          {tradeSuccess && <div className="bg-green-50 border border-green-300 text-green-700 rounded-lg p-3 text-sm">{tradeSuccess}</div>}
 
           <div>
-            <h3 className="text-lg font-semibold text-gray-200 mb-3">1. Select a card to offer</h3>
+            <h3 className="text-lg font-bold text-navy mb-3">1. Select a card to offer</h3>
             {myCards.length === 0 ? (
-              <p className="text-gray-500">You have no cards to trade yet.</p>
+              <p className="text-navy/50">You have no cards to trade yet.</p>
             ) : (
               <div className="flex gap-3 flex-wrap max-h-72 overflow-y-auto pb-2">
                 {myCards.map(card => (
                   <div key={card.user_card_id}
                     onClick={() => setSelectedMyCard(selectedMyCard?.id === card.id ? null : card)}
-                    className={`cursor-pointer transition-all ${selectedMyCard?.id === card.id ? 'ring-2 ring-purple-400 rounded-xl scale-105' : 'opacity-70 hover:opacity-100'}`}>
+                    className={`cursor-pointer transition-all ${selectedMyCard?.id === card.id ? 'ring-2 ring-gold rounded-xl scale-105' : 'opacity-70 hover:opacity-100'}`}>
                     <CardDisplay card={card} small />
                   </div>
                 ))}
               </div>
             )}
-            {selectedMyCard && <p className="text-purple-400 text-sm mt-2">✓ Offering: {selectedMyCard.name}</p>}
+            {selectedMyCard && <p className="text-gold-dark text-sm mt-2 font-semibold">✓ Offering: {selectedMyCard.name}</p>}
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-gray-200 mb-3">2. Find a player</h3>
+            <h3 className="text-lg font-bold text-navy mb-3">2. Find a player</h3>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -270,10 +272,10 @@ export default function Trade() {
                 value={otherUsername}
                 onChange={e => setOtherUsername(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && searchUser()}
-                className="flex-1 bg-[#0f0f1a] border border-purple-900/50 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-purple-500"
+                className="flex-1 bg-mist border border-navy/15 rounded-lg px-4 py-2 text-navy focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
               />
               <button onClick={searchUser}
-                className="bg-purple-700 hover:bg-purple-600 text-white px-5 py-2 rounded-lg transition-colors font-medium">
+                className="bg-navy hover:bg-navy-mid text-white px-5 py-2 rounded-lg transition-colors font-semibold">
                 Search
               </button>
             </div>
@@ -281,43 +283,43 @@ export default function Trade() {
 
           {otherProfile && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-200 mb-3">
-                3. Request a card from {otherProfile.username} <span className="text-gray-500 font-normal text-sm">(optional)</span>
+              <h3 className="text-lg font-bold text-navy mb-3">
+                3. Request a card from {otherProfile.username} <span className="text-navy/40 font-normal text-sm">(optional)</span>
               </h3>
               {otherCards.length === 0 ? (
-                <p className="text-gray-500">This player has no cards.</p>
+                <p className="text-navy/50">This player has no cards.</p>
               ) : (
                 <div className="flex gap-3 flex-wrap max-h-72 overflow-y-auto pb-2">
                   {otherCards.map(card => (
                     <div key={card.user_card_id}
                       onClick={() => setSelectedTheirCard(selectedTheirCard?.id === card.id ? null : card)}
-                      className={`cursor-pointer transition-all ${selectedTheirCard?.id === card.id ? 'ring-2 ring-blue-400 rounded-xl scale-105' : 'opacity-70 hover:opacity-100'}`}>
+                      className={`cursor-pointer transition-all ${selectedTheirCard?.id === card.id ? 'ring-2 ring-blue-500 rounded-xl scale-105' : 'opacity-70 hover:opacity-100'}`}>
                       <CardDisplay card={card} small />
                     </div>
                   ))}
                 </div>
               )}
-              {selectedTheirCard && <p className="text-blue-400 text-sm mt-2">✓ Requesting: {selectedTheirCard.name}</p>}
+              {selectedTheirCard && <p className="text-blue-600 text-sm mt-2 font-semibold">✓ Requesting: {selectedTheirCard.name}</p>}
             </div>
           )}
 
           {otherProfile && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-200 mb-3">4. Message <span className="text-gray-500 font-normal text-sm">(optional)</span></h3>
+              <h3 className="text-lg font-bold text-navy mb-3">4. Message <span className="text-navy/40 font-normal text-sm">(optional)</span></h3>
               <input
                 type="text"
                 placeholder="Add a message..."
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 maxLength={200}
-                className="w-full bg-[#0f0f1a] border border-purple-900/50 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-purple-500"
+                className="w-full bg-mist border border-navy/15 rounded-lg px-4 py-2 text-navy focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
               />
             </div>
           )}
 
           {otherProfile && selectedMyCard && (
             <button onClick={sendTrade} disabled={sending}
-              className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white py-3 rounded-xl font-semibold transition-colors">
+              className="w-full bg-gold hover:bg-gold-dark disabled:opacity-50 text-navy-dark py-3 rounded-xl font-bold transition-colors">
               {sending ? 'Sending...' : 'Send Trade Offer'}
             </button>
           )}

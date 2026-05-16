@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import GlowButton from '../components/GlowButton'
 
 export default function Register() {
   const { signUp } = useAuth()
@@ -29,60 +30,40 @@ export default function Register() {
     }
   }
 
+  const inputClass = 'w-full bg-mist border border-navy/15 rounded-lg px-4 py-2.5 text-navy focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 transition-all'
+
   return (
     <div className="max-w-md mx-auto mt-16">
-      <div className="bg-[#1a1a2e] rounded-2xl p-8 border border-purple-900/30">
-        <h1 className="text-2xl font-bold text-center mb-6 text-purple-300">Create Account</h1>
+      <div className="bg-white rounded-2xl p-8 border border-navy/10 shadow-lg">
+        <h1 className="text-2xl font-extrabold text-center mb-6 text-navy">Create Account</h1>
 
         {error && (
-          <div className="bg-red-900/30 border border-red-700 text-red-300 rounded-lg p-3 mb-4 text-sm">{error}</div>
+          <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 mb-4 text-sm">{error}</div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              required
-              placeholder="your_username"
-              className="w-full bg-[#0f0f1a] border border-purple-900/50 rounded-lg px-4 py-2.5 text-gray-100 focus:outline-none focus:border-purple-500 transition-colors"
-            />
+            <label className="block text-sm text-navy/60 mb-1 font-medium">Username</label>
+            <input type="text" value={username} onChange={e => setUsername(e.target.value)} required
+              placeholder="your_username" className={inputClass} />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              className="w-full bg-[#0f0f1a] border border-purple-900/50 rounded-lg px-4 py-2.5 text-gray-100 focus:outline-none focus:border-purple-500 transition-colors"
-            />
+            <label className="block text-sm text-navy/60 mb-1 font-medium">Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className={inputClass} />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="At least 6 characters"
-              className="w-full bg-[#0f0f1a] border border-purple-900/50 rounded-lg px-4 py-2.5 text-gray-100 focus:outline-none focus:border-purple-500 transition-colors"
-            />
+            <label className="block text-sm text-navy/60 mb-1 font-medium">Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+              placeholder="At least 6 characters" className={inputClass} />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors mt-2"
-          >
+          <GlowButton type="submit" disabled={loading} className="py-2.5 mt-2 disabled:opacity-50">
             {loading ? 'Creating account...' : 'Create Account'}
-          </button>
+          </GlowButton>
         </form>
 
-        <p className="text-center text-gray-500 text-sm mt-6">
+        <p className="text-center text-navy/50 text-sm mt-6">
           Already have an account?{' '}
-          <Link to="/login" className="text-purple-400 hover:text-purple-300">Sign in</Link>
+          <Link to="/login" className="text-gold-dark hover:text-gold font-semibold">Sign in</Link>
         </p>
       </div>
     </div>

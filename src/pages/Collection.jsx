@@ -31,21 +31,21 @@ export default function Collection() {
     .filter(c => filter === 'all' || c.rarity === filter)
     .filter(c => !search || c.name.toLowerCase().includes(search.toLowerCase()))
 
-  if (loading) return <div className="text-center py-20 text-purple-400 animate-pulse">Loading collection...</div>
+  if (loading) return <div className="text-center py-20 text-navy/50 animate-pulse">Loading collection...</div>
 
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-purple-300">My Collection</h1>
-          <p className="text-gray-500">{cards.length} cards collected</p>
+          <h1 className="text-3xl font-extrabold text-navy">My Collection</h1>
+          <p className="text-navy/50">{cards.length} cards collected</p>
         </div>
         <input
           type="text"
           placeholder="Search cards..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="bg-[#1a1a2e] border border-purple-900/50 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-purple-500 w-full md:w-64"
+          className="bg-mist border border-navy/15 rounded-lg px-4 py-2 text-navy focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 w-full md:w-64"
         />
       </div>
 
@@ -59,10 +59,10 @@ export default function Collection() {
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
               filter === key
-                ? 'bg-purple-600 text-white'
-                : 'bg-[#1a1a2e] text-gray-400 hover:text-white border border-purple-900/30'
+                ? 'bg-navy text-white'
+                : 'bg-white text-navy/60 hover:text-navy border border-navy/15'
             }`}
           >
             {label}
@@ -71,9 +71,9 @@ export default function Collection() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-20 text-gray-500">
+        <div className="text-center py-20 text-navy/50">
           {cards.length === 0
-            ? <><p className="text-xl mb-2">Your collection is empty</p><p>Go to Daily Draw to get your first card!</p></>
+            ? <><p className="text-xl mb-2 font-semibold text-navy">Your collection is empty</p><p>Go to Daily Draw to get your first card!</p></>
             : <p>No cards match your filter.</p>
           }
         </div>

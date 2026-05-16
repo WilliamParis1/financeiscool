@@ -45,37 +45,37 @@ export default function Profile() {
   const legendaryCount = cards.filter(c => c.rarity === 'legendary').length
   const rareCount = cards.filter(c => c.rarity === 'rare').length
 
-  if (loading) return <div className="text-center py-20 text-purple-400 animate-pulse">Loading...</div>
-  if (notFound) return <div className="text-center py-20 text-gray-500 text-xl">User not found</div>
+  if (loading) return <div className="text-center py-20 text-navy/50 animate-pulse">Loading...</div>
+  if (notFound) return <div className="text-center py-20 text-navy/50 text-xl">User not found</div>
 
   return (
     <div className="max-w-5xl mx-auto">
       {/* Profile header */}
-      <div className="bg-[#1a1a2e] rounded-2xl p-8 border border-purple-900/30 mb-8">
+      <div className="bg-white rounded-2xl p-8 border border-navy/10 shadow-lg mb-8">
         <div className="flex items-center gap-6">
-          <div className="w-20 h-20 bg-gradient-to-br from-purple-700 to-purple-900 rounded-full flex items-center justify-center text-3xl font-bold text-white shrink-0">
+          <div className="w-20 h-20 bg-gradient-to-br from-navy to-navy-dark rounded-full flex items-center justify-center text-3xl font-bold text-gold shrink-0">
             {profile.username[0].toUpperCase()}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-100">{profile.username}</h1>
-            <p className="text-gray-500 text-sm">
+            <h1 className="text-2xl font-extrabold text-navy">{profile.username}</h1>
+            <p className="text-navy/50 text-sm">
               Joined {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-purple-900/20">
+        <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-navy/10">
           <div className="text-center">
-            <p className="text-2xl font-bold text-purple-400">{cards.length}</p>
-            <p className="text-gray-500 text-sm">Total Cards</p>
+            <p className="text-2xl font-extrabold text-navy">{cards.length}</p>
+            <p className="text-navy/50 text-sm">Total Cards</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-blue-400">{rareCount}</p>
-            <p className="text-gray-500 text-sm">Rare</p>
+            <p className="text-2xl font-extrabold text-blue-600">{rareCount}</p>
+            <p className="text-navy/50 text-sm">Rare</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-amber-400">{legendaryCount}</p>
-            <p className="text-gray-500 text-sm">Legendary</p>
+            <p className="text-2xl font-extrabold text-gold-dark">{legendaryCount}</p>
+            <p className="text-navy/50 text-sm">Legendary</p>
           </div>
         </div>
       </div>
@@ -86,8 +86,8 @@ export default function Profile() {
           <button
             key={r}
             onClick={() => setFilter(r)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium capitalize transition-colors ${
-              filter === r ? 'bg-purple-600 text-white' : 'bg-[#1a1a2e] text-gray-400 hover:text-white border border-purple-900/30'
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold capitalize transition-colors ${
+              filter === r ? 'bg-navy text-white' : 'bg-white text-navy/60 hover:text-navy border border-navy/15'
             }`}
           >
             {r}
@@ -96,7 +96,7 @@ export default function Profile() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">No cards here yet.</div>
+        <div className="text-center py-12 text-navy/50">No cards here yet.</div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {filtered.map(card => (

@@ -6,7 +6,7 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
 
   if (loading) return (
     <div className="flex justify-center items-center h-64">
-      <div className="text-purple-400 text-xl animate-pulse">Loading...</div>
+      <div className="text-navy/50 text-xl animate-pulse">Loading...</div>
     </div>
   )
   if (!user) return <Navigate to="/login" replace />
