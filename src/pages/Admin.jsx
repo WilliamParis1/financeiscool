@@ -110,6 +110,12 @@ export default function Admin() {
     await supabase.from('cards').update({ rarity_weight: w }).eq('id', card.id)
   }
 
+  async function updateRarity(card, newRarity) {
+    if (!['common', 'rare', 'legendary'].includes(newRarity)) return
+    setCards(cs => cs.map(c => c.id === card.id ? { ...c, rarity: newRarity } : c))
+    await supabase.from('cards').update({ rarity: newRarity }).eq('id', card.id)
+  }
+
   async function deleteCard(card) {
     if (!window.confirm(`Delete "${card.name}"? This removes it from all collections.`)) return
     await supabase.from('card_posts').delete().eq('card_id', card.id)
@@ -398,7 +404,8 @@ export default function Admin() {
           ) : (
             <>
               <p className="text-sm text-navy/50 mb-4">
-                Edit a card's drop weight below — the drop chance updates live. Total weight across all cards: {totalWeight}
+                Edit a card's rarity and drop weight below. Rarity controls the visual style; drop weight controls odds.
+                Total weight across all cards: {totalWeight}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {cards.map(card => (
@@ -411,6 +418,17 @@ export default function Admin() {
                       ✕
                     </button>
                     <div className="mt-2 bg-white border border-navy/10 rounded-lg p-2 shadow-sm">
+                      <label className="block text-[11px] text-navy/40 mb-1">Rarity</label>
+                      <select
+                        value={card.rarity}
+                        onChange={e => updateRarity(card, e.target.value)}
+                        className="w-full bg-mist border border-navy/15 rounded px-2 py-1 text-xs text-navy focus:outline-none focus:border-gold mb-2"
+                      >
+                        <option value="common">Common</option>
+                        <option value="rare">Rare</option>
+                        <option value="legendary">Legendary</option>
+                      </select>
+
                       <label className="block text-[11px] text-navy/40 mb-1">Drop weight</label>
                       <div className="flex items-center gap-2">
                         <input
