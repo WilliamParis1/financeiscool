@@ -18,6 +18,11 @@ export default function Home() {
   const [speechVisible, setSpeechVisible] = useState(true)
   const [dailyCards, setDailyCards] = useState([])
   const [dailyLoading, setDailyLoading] = useState(true)
+  const [todayAttempt, setTodayAttempt] = useState(null)
+  const [attemptLoaded, setAttemptLoaded] = useState(false)
+  const [answers, setAnswers] = useState([null, null, null])
+  const [submitting, setSubmitting] = useState(false)
+  const [expanded, setExpanded] = useState({})
 
   const TODAY = new Date().toISOString().split('T')[0]
 
@@ -34,6 +39,11 @@ export default function Home() {
 
   useEffect(() => { loadDailyCards() }, [])
 
+  useEffect(() => {
+    if (user) loadTodayAttempt()
+    else setAttemptLoaded(true)
+  }, [user])
+
   async function loadDailyCards() {
     const { data } = await supabase
       .from('daily_cards')
@@ -44,6 +54,44 @@ export default function Home() {
     setDailyLoading(false)
   }
 
+  async function loadTodayAttempt() {
+    const { data } = await supabase
+      .from('daily_attempts')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', TODAY)
+      .single()
+    setTodayAttempt(data || null)
+    setAttemptLoaded(true)
+  }
+
+  async function handleSubmit(daily) {
+    if (answers.some(a => a === null)) return
+    setSubmitting(true)
+
+    const mcq = daily.mcq
+    const score = answers.reduce((s, a, i) => s + (a === mcq[i].correct ? 1 : 0), 0)
+    const passed = score === 3
+
+    await supabase.from('daily_attempts').insert({
+      user_id: user.id,
+      date: TODAY,
+      answers,
+      score,
+      passed,
+    })
+
+    if (passed) {
+      await supabase.from('user_cards').upsert(
+        { user_id: user.id, card_id: daily.card_id, quantity: 1, obtained_at: new Date().toISOString() },
+        { onConflict: 'user_id,card_id', ignoreDuplicates: true }
+      )
+    }
+
+    setTodayAttempt({ score, passed, answers })
+    setSubmitting(false)
+  }
+
   function formatDate(dateStr) {
     return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
       weekday: 'short', month: 'short', day: 'numeric'
@@ -52,6 +100,7 @@ export default function Home() {
 
   const todayCard = dailyCards.find(d => d.date === TODAY)
   const pastCards = dailyCards.filter(d => d.date !== TODAY)
+  const revealed = !!todayAttempt
 
   return (
     <div className="px-4">
@@ -103,38 +152,97 @@ export default function Home() {
       {!dailyLoading && dailyCards.length > 0 && (
         <section className="max-w-4xl mx-auto pb-24 space-y-6">
 
-          {/* Today's card — blurred mystery */}
+          {/* Today's card */}
           {todayCard && (
-            <Link to="/daily" className="block group">
-              <article className="bg-white border-2 border-gold/40 rounded-2xl shadow-lg overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr] hover:shadow-xl transition-shadow">
-                <div className="bg-mist flex items-center justify-center p-6 relative min-h-[160px] border-b md:border-b-0 md:border-r border-navy/10">
+            <article className="bg-white border-2 border-gold/40 rounded-2xl shadow-lg overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
+
+                {/* Card image */}
+                <div className={`bg-mist flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-navy/10 transition-all duration-700 ${revealed && !todayAttempt.passed ? 'grayscale opacity-60' : ''}`}>
                   {todayCard.cards?.image_url ? (
-                    <>
-                      <img
-                        src={todayCard.cards.image_url}
-                        alt="Today's mystery card"
-                        className="w-32 aspect-[11/17] object-cover rounded-xl blur-xl scale-110"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center text-5xl">🃏</div>
-                    </>
+                    <img
+                      src={todayCard.cards.image_url}
+                      alt={todayCard.cards?.name}
+                      className={`w-32 aspect-[11/17] object-cover rounded-xl shadow transition-all duration-700 ${!revealed ? 'blur scale-105' : ''}`}
+                    />
                   ) : (
-                    <span className="text-5xl">🃏</span>
+                    <div className="w-32 aspect-[11/17] bg-white border border-navy/10 rounded-xl" />
                   )}
                 </div>
-                <div className="p-6 flex flex-col justify-center">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-black uppercase tracking-[0.2em] text-gold-dark">Today · {formatDate(todayCard.date)}</span>
-                    <span className="text-xs bg-gold/20 text-gold-dark font-bold px-2 py-0.5 rounded-full">New</span>
+
+                {/* Content */}
+                <div className="p-6 flex flex-col gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-xs font-black uppercase tracking-[0.2em] text-gold-dark">Today · {formatDate(todayCard.date)}</span>
+                      {!revealed && <span className="text-xs bg-gold/20 text-gold-dark font-bold px-2 py-0.5 rounded-full">New</span>}
+                      {revealed && todayAttempt.passed && <span className="text-xs bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">🎉 {todayAttempt.score}/3 — Unlocked!</span>}
+                      {revealed && !todayAttempt.passed && <span className="text-xs bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full">{todayAttempt.score}/3 — Better luck tomorrow</span>}
+                    </div>
+                    <h2 className="text-xl font-extrabold text-navy">{todayCard.cards?.name || '—'}</h2>
                   </div>
-                  <h2 className="text-xl font-extrabold text-navy mb-2">???</h2>
-                  <p className="text-navy/60 text-sm line-clamp-3">{todayCard.news_summary}</p>
-                  <p className="mt-3 text-gold-dark font-bold text-sm group-hover:underline">Answer the MCQ to unlock →</p>
+
+                  <p className="text-navy/70 text-sm leading-relaxed">{todayCard.news_summary}</p>
+
+                  {/* MCQ — only if not yet attempted and user is logged in */}
+                  {!revealed && user && attemptLoaded && (
+                    <div className="border-t border-navy/10 pt-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-gold-dark font-black mb-4">
+                        Answer 3/3 correctly to unlock the card
+                      </p>
+                      <div className="space-y-4">
+                        {todayCard.mcq.map((q, qi) => (
+                          <div key={qi}>
+                            <p className="font-bold text-navy text-sm mb-2">
+                              <span className="text-gold-dark mr-2">{qi + 1}.</span>{q.question}
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {q.answers.map((ans, ai) => (
+                                <button
+                                  key={ai}
+                                  onClick={() => setAnswers(prev => { const n = [...prev]; n[qi] = ai; return n })}
+                                  className={`px-4 py-2.5 rounded-xl text-sm font-semibold text-left border-2 transition-all ${
+                                    answers[qi] === ai
+                                      ? 'bg-navy text-white border-navy'
+                                      : 'bg-white text-navy border-navy/15 hover:border-navy/40'
+                                  }`}
+                                >
+                                  {ans}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-4 flex items-center gap-3">
+                        <GlowButton
+                          onClick={() => handleSubmit(todayCard)}
+                          disabled={answers.some(a => a === null) || submitting}
+                          className="px-6 py-2.5 text-sm disabled:opacity-40"
+                        >
+                          {submitting ? 'Checking...' : 'Submit Answers'}
+                        </GlowButton>
+                        {answers.some(a => a === null) && (
+                          <p className="text-xs text-navy/40">Answer all 3 questions first</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Not logged in */}
+                  {!revealed && !user && (
+                    <div className="border-t border-navy/10 pt-4">
+                      <Link to="/login" className="text-gold-dark font-bold text-sm hover:underline">
+                        Login to unlock today's card →
+                      </Link>
+                    </div>
+                  )}
                 </div>
-              </article>
-            </Link>
+              </div>
+            </article>
           )}
 
-          {/* Past cards — fully visible, no MCQ */}
+          {/* Past cards — same height as image, truncated text */}
           {pastCards.map(daily => (
             <article key={daily.date} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
               <div className="bg-mist flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-navy/10">
@@ -150,13 +258,24 @@ export default function Home() {
                   </div>
                 )}
               </div>
-              <div className="p-6">
+              <div className="p-6 flex flex-col justify-center">
                 <span className="text-xs font-black uppercase tracking-[0.2em] text-navy/40">{formatDate(daily.date)}</span>
                 <h2 className="text-xl font-extrabold text-navy mt-1 mb-3">{daily.cards?.name || '—'}</h2>
-                <p className="text-navy/65 text-sm leading-relaxed">{daily.news_summary}</p>
+                <p className={`text-navy/65 text-sm leading-relaxed ${!expanded[daily.date] ? 'line-clamp-3' : ''}`}>
+                  {daily.news_summary}
+                </p>
+                {!expanded[daily.date] && (
+                  <button
+                    onClick={() => setExpanded(e => ({ ...e, [daily.date]: true }))}
+                    className="mt-1 text-gold-dark text-sm font-bold hover:underline text-left"
+                  >
+                    Read more...
+                  </button>
+                )}
               </div>
             </article>
           ))}
+
         </section>
       )}
     </div>
