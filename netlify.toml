@@ -3,6 +3,28 @@
   publish = "dist"
 
 [[redirects]]
+  from = "http://financeisfun.com/*"
+  to = "https://financeisfun.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.financeisfun.com/*"
+  to = "https://financeisfun.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    X-XSS-Protection = "1; mode=block"
