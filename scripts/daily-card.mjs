@@ -29,12 +29,27 @@ async function checkAlreadyGenerated() {
 }
 
 
-// ─── Step 2: Research with Claude Sonnet + web search ────────────────────────
+// ─── Step 2: Fetch recent card topics to avoid duplicates ────────────────────
+
+async function getRecentTopics() {
+  const { data } = await supabase
+    .from('daily_cards')
+    .select('cards(name), news_summary')
+    .order('created_at', { ascending: false })
+    .limit(14)
+  if (!data?.length) return ''
+  const lines = data.map(d => `- ${d.cards?.name}: ${d.news_summary?.slice(0, 80)}...`).join('\n')
+  return `\nAvoid these recent topics (already covered):\n${lines}\nPick a completely different event, country, company, or theme.`
+}
+
+// ─── Step 3: Research with Claude Sonnet + web search ────────────────────────
 
 async function researchNews() {
   console.log('🔍 Researching yesterday\'s finance news with Claude...')
 
-  const researchPrompt = `Yesterday was ${YESTERDAY}. Search Reuters, Bloomberg, FT, or WSJ for ONE discrete, memorable event from yesterday — something specific that happened on that day (e.g. election won, minister appointed, law passed, sanctions imposed, rate decision made, company acquired, war escalation, discovery announced). Reject vague trends, market moves, or anything that "has been happening" rather than "happened yesterday". Output ONLY this JSON (no markdown):
+  const recentTopics = await getRecentTopics()
+
+  const researchPrompt = `Yesterday was ${YESTERDAY}. Search Reuters, Bloomberg, FT, or WSJ for ONE discrete, memorable event from yesterday — something specific that happened on that day (e.g. election won, minister appointed, law passed, sanctions imposed, rate decision made, company acquired, war escalation, discovery announced). Reject vague trends, market moves, or anything that "has been happening" rather than "happened yesterday".${recentTopics} Output ONLY this JSON (no markdown):
 {"card_name":"≤15 chars","news_summary":"3-4 sentence journalist summary with historical context","mcq":[{"question":"...","answers":["A","B"],"correct":0},{"question":"...","answers":["A","B"],"correct":1},{"question":"...","answers":["A","B"],"correct":0}],"attacks":[{"title":"≤15 chars","info":"≤35 chars"},{"title":"≤15 chars","info":"≤35 chars"},{"title":"≤15 chars","info":"≤35 chars"}],"power":120,"image_description":"vivid one-paragraph card artwork scene"}
 
 MCQ rules: 3 questions, 2 choices each, one about a number, one conceptual, one specific detail. Power: 80-180 in multiples of 10.`
@@ -70,7 +85,7 @@ MCQ rules: 3 questions, 2 choices each, one about a number, one conceptual, one 
   return JSON.parse(jsonMatch[0])
 }
 
-// ─── Step 3: Generate card image with GPT-4o ─────────────────────────────────
+// ─── Step 4: Generate card image with GPT-4o ─────────────────────────────────
 
 async function generateCardImage(cardData) {
   console.log('🎨 Generating card image with GPT-4o...')
@@ -122,7 +137,7 @@ The card should look premium, collectible, and artistic.`
   return Buffer.from(imageBlock.result, 'base64')
 }
 
-// ─── Step 4: Upload image to Supabase Storage ─────────────────────────────────
+// ─── Step 5: Upload image to Supabase Storage ─────────────────────────────────
 
 async function uploadImage(imageBuffer) {
   console.log('📤 Uploading image to Supabase...')
@@ -138,7 +153,7 @@ async function uploadImage(imageBuffer) {
   return publicUrl
 }
 
-// ─── Step 5: Save card + daily_card to Supabase ───────────────────────────────
+// ─── Step 6: Save card + daily_card to Supabase ───────────────────────────────
 
 function monthTag() {
   const d = new Date()
