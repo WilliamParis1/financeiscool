@@ -3,7 +3,15 @@
     "allow": [
       "PowerShell(node --version)",
       "PowerShell(npm --version)",
-      "PowerShell(cd \"C:\\\\Users\\\\willi\\\\Desktop\\\\financeisfun\"; Remove-Item script.js, style.css -Force; Write-Output \"Removed stray files. Final root contents:\"; Get-ChildItem -Name | Where-Object { $_ -ne 'node_modules' -and $_ -ne 'dist' })"
+      "PowerShell(cd \"C:\\\\Users\\\\willi\\\\Desktop\\\\financeisfun\"; Remove-Item script.js, style.css -Force; Write-Output \"Removed stray files. Final root contents:\"; Get-ChildItem -Name | Where-Object { $_ -ne 'node_modules' -and $_ -ne 'dist' })",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(Get-ChildItem -Path . -Recurse -Depth 3)",
+      "Bash(Select-Object -First 50)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\willi\\\\Desktop\\\\financeisfun\\\\.claude\\\\worktrees\\\\cool-murdock-e0423d\" -Recurse -Filter \"*.sql\")",
+      "Bash(Select-Object -First 20)",
+      "Bash(npm install *)"
     ]
   }
 }

@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import { useAuth } from '../contexts/AuthContext'
 import CardDisplay from '../components/CardDisplay'
 import CardModal from '../components/CardModal'
+import AvatarPickerModal from '../components/AvatarPickerModal'
 
 export default function Profile() {
   const { username } = useParams()
+  const { user } = useAuth()
   const [profile, setProfile] = useState(null)
   const [cards, setCards] = useState([])
   const [selectedCard, setSelectedCard] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [notFound, setNotFound] = useState(false)
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(null)
 
   useEffect(() => { loadProfile() }, [username])
 
@@ -30,6 +35,7 @@ export default function Profile() {
     }
 
     setProfile(profileData)
+    setAvatarUrl(profileData.avatar_url || null)
 
     const { data: cardData } = await supabase
       .from('user_cards')
@@ -41,6 +47,7 @@ export default function Profile() {
     setLoading(false)
   }
 
+  const isOwnProfile = user && profile && user.id === profile.id
   const filtered = filter === 'all' ? cards : cards.filter(c => c.rarity === filter)
   const legendaryCount = cards.filter(c => c.rarity === 'legendary').length
   const rareCount = cards.filter(c => c.rarity === 'rare').length
@@ -53,14 +60,45 @@ export default function Profile() {
       {/* Profile header */}
       <div className="bg-white rounded-2xl p-8 border border-navy/10 shadow-lg mb-8">
         <div className="flex items-center gap-6">
-          <div className="w-20 h-20 bg-gradient-to-br from-navy to-navy-dark rounded-full flex items-center justify-center text-3xl font-bold text-gold shrink-0">
-            {profile.username[0].toUpperCase()}
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={profile.username}
+                className="w-20 h-20 rounded-full object-cover border-2 border-gold/40 shadow"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-gradient-to-br from-navy to-navy-dark rounded-full flex items-center justify-center text-3xl font-bold text-gold">
+                {profile.username[0].toUpperCase()}
+              </div>
+            )}
+            {isOwnProfile && (
+              <button
+                onClick={() => setShowAvatarPicker(true)}
+                className="absolute -bottom-1 -right-1 w-7 h-7 bg-white border-2 border-navy/20 rounded-full flex items-center justify-center shadow hover:border-gold transition-colors"
+                title="Edit photo"
+              >
+                <svg className="w-3.5 h-3.5 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z" />
+                </svg>
+              </button>
+            )}
           </div>
+
           <div>
             <h1 className="text-2xl font-extrabold text-navy">{profile.username}</h1>
             <p className="text-navy/50 text-sm">
               Joined {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>
+            {isOwnProfile && (
+              <button
+                onClick={() => setShowAvatarPicker(true)}
+                className="mt-1.5 text-xs text-navy/40 hover:text-gold-dark font-semibold transition-colors"
+              >
+                Edit photo
+              </button>
+            )}
           </div>
         </div>
 
@@ -106,6 +144,14 @@ export default function Profile() {
       )}
 
       {selectedCard && <CardModal card={selectedCard} onClose={() => setSelectedCard(null)} />}
+
+      {showAvatarPicker && (
+        <AvatarPickerModal
+          cards={cards}
+          onClose={() => setShowAvatarPicker(false)}
+          onSaved={url => setAvatarUrl(url)}
+        />
+      )}
     </div>
   )
 }
