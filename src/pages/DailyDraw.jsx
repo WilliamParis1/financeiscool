@@ -1,218 +1,215 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
-import CardDisplay from '../components/CardDisplay'
-import CardModal from '../components/CardModal'
+import { supabase } from '../lib/supabaseClient'
 import GlowButton from '../components/GlowButton'
-
-// ─────────────────────────────────────────────────────────────────────────
-// Cooldown between draws. Set to 1 minute for testing.
-// For a real daily draw, set this back to: 24 * 60 * 60 * 1000  (24 hours)
-const CLAIM_COOLDOWN_MS = 60 * 1000
-// ─────────────────────────────────────────────────────────────────────────
-
-// Picks a card using each card's own drop weight (set by the game master in
-// the admin panel). A higher weight = more likely to be drawn.
-function pickWeightedCard(cards) {
-  const total = cards.reduce((sum, c) => sum + Math.max(0, c.rarity_weight || 0), 0)
-  if (total <= 0) return cards[Math.floor(Math.random() * cards.length)]
-  let roll = Math.random() * total
-  for (const c of cards) {
-    roll -= Math.max(0, c.rarity_weight || 0)
-    if (roll <= 0) return c
-  }
-  return cards[cards.length - 1]
-}
-
-const RARITY = {
-  legendary: { text: '🌟 LEGENDARY!',   color: '#c9a24b' },
-  rare:      { text: '💫 RARE CARD!',    color: '#2563eb' },
-  common:    { text: '✦ Card obtained!', color: '#0a1f44' },
-}
-
-function formatRemaining(ms) {
-  const total = Math.ceil(ms / 1000)
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  if (m >= 60) {
-    const h = Math.floor(m / 60)
-    return `${h}h ${m % 60}m ${s}s`
-  }
-  return m > 0 ? `${m}m ${s}s` : `${s}s`
-}
 
 export default function DailyDraw() {
   const { user } = useAuth()
-  const [lastCard, setLastCard] = useState(null)
-  const [lastClaimAt, setLastClaimAt] = useState(null)   // ms timestamp or null
-  const [revealing, setRevealing] = useState(false)
-  const [revealed, setRevealed] = useState(false)
-  const [newCard, setNewCard] = useState(null)
-  const [selectedCard, setSelectedCard] = useState(null)
+  const [daily, setDaily] = useState(null)
+  const [attempt, setAttempt] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [flash, setFlash] = useState(false)
-  const [now, setNow] = useState(Date.now())
+  const [answers, setAnswers] = useState([null, null, null])
+  const [submitting, setSubmitting] = useState(false)
+  const [result, setResult] = useState(null)
 
-  useEffect(() => { checkLastClaim() }, [user])
+  const TODAY = new Date().toISOString().split('T')[0]
 
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [])
+  useEffect(() => { load() }, [user])
 
-  const cooldownEndsAt = lastClaimAt ? lastClaimAt + CLAIM_COOLDOWN_MS : 0
-  const onCooldown = lastClaimAt != null && now < cooldownEndsAt
-  const remainingMs = Math.max(0, cooldownEndsAt - now)
+  async function load() {
+    const [{ data: dailyData }, { data: attemptData }] = await Promise.all([
+      supabase.from('daily_cards').select('*, cards(*)').eq('date', TODAY).single(),
+      user
+        ? supabase.from('daily_attempts').select('*').eq('user_id', user.id).eq('date', TODAY).single()
+        : Promise.resolve({ data: null }),
+    ])
 
-  async function checkLastClaim() {
-    const { data } = await supabase
-      .from('daily_claims')
-      .select('claimed_at, cards(*)')
-      .eq('user_id', user.id)
-      .order('claimed_at', { ascending: false })
-      .limit(1)
-    const row = data?.[0]
-    if (row) {
-      setLastCard(row.cards)
-      setLastClaimAt(new Date(row.claimed_at).getTime())
-    }
+    setDaily(dailyData || null)
+    setAttempt(attemptData || null)
+    if (attemptData) setResult({ score: attemptData.score, passed: attemptData.passed, answers: attemptData.answers })
     setLoading(false)
   }
 
-  async function claimCard() {
-    if (onCooldown) return
-    setRevealing(true)
-    setRevealed(false)
-    setError('')
+  async function handleSubmit() {
+    if (answers.some(a => a === null)) return
+    setSubmitting(true)
 
-    try {
-      const { data: cards } = await supabase.from('cards').select('*')
-      if (!cards || cards.length === 0) {
-        throw new Error('No cards available yet. Ask an admin to add some!')
-      }
+    const mcq = daily.mcq
+    const score = answers.reduce((s, a, i) => s + (a === mcq[i].correct ? 1 : 0), 0)
+    const passed = score === 3
 
-      const card = pickWeightedCard(cards)
+    await supabase.from('daily_attempts').insert({
+      user_id: user.id,
+      date: TODAY,
+      answers,
+      score,
+      passed,
+    })
 
-      const { error: claimError } = await supabase.from('daily_claims').insert({
-        user_id: user.id,
-        card_id: card.id,
-        claimed_at: new Date().toISOString(),
-      })
-      if (claimError) throw new Error(claimError.message)
-
-      const { data: existing } = await supabase
-        .from('user_cards')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('card_id', card.id)
-        .single()
-
-      if (existing) {
-        await supabase.from('user_cards').update({ quantity: existing.quantity + 1 }).eq('id', existing.id)
-      } else {
-        await supabase.from('user_cards').insert({ user_id: user.id, card_id: card.id, quantity: 1 })
-      }
-
-      setTimeout(() => {
-        setFlash(true)
-        setNewCard(card)
-        setRevealing(false)
-        setRevealed(true)
-        setLastCard(card)
-        setLastClaimAt(Date.now())
-        setTimeout(() => setFlash(false), 600)
-      }, 1400)
-    } catch (err) {
-      setError(err.message)
-      setRevealing(false)
+    if (passed) {
+      await supabase.from('user_cards').upsert(
+        { user_id: user.id, card_id: daily.card_id, quantity: 1, obtained_at: new Date().toISOString() },
+        { onConflict: 'user_id,card_id', ignoreDuplicates: true }
+      )
     }
+
+    setResult({ score, passed, answers })
+    setSubmitting(false)
   }
 
-  if (loading) return <div className="text-center py-20 text-navy/50 animate-pulse">Loading...</div>
+  if (loading) return <div className="text-center py-20 text-navy/50 animate-pulse">Loading today's card...</div>
 
-  const rarityCfg = RARITY[newCard?.rarity] || RARITY.common
+  if (!daily) return (
+    <div className="max-w-2xl mx-auto text-center py-20">
+      <p className="text-5xl mb-4">📅</p>
+      <h2 className="text-2xl font-extrabold text-navy mb-2">No card today yet</h2>
+      <p className="text-navy/50">Today's card is generated at 6am Paris time. Check back soon!</p>
+    </div>
+  )
+
+  const card = daily.cards
+  const mcq = daily.mcq
+  const revealed = !!result
 
   return (
-    <div className="max-w-2xl mx-auto text-center">
-      {flash && <div className="screen-flash" />}
-
-      <h1 className="text-4xl font-extrabold text-navy mb-2">Daily Card Draw</h1>
-      <p className="text-navy/50 mb-3">
-        Draw a card and grow your collection.
-      </p>
-
-      {onCooldown && (
-        <p className="text-sm text-navy/60 mb-8">
-          Next card in:{' '}
-          <span className="text-gold-dark font-mono font-bold text-base">
-            {formatRemaining(remainingMs)}
-          </span>
+    <div className="max-w-5xl mx-auto">
+      <div className="mb-6">
+        <p className="text-xs uppercase tracking-[0.25em] text-gold-dark font-black mb-1">Daily Card</p>
+        <h1 className="text-3xl font-extrabold text-navy">{revealed ? card?.name : '???'}</h1>
+        <p className="text-navy/50 text-sm mt-1">
+          {new Date(TODAY + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
-      )}
-      {!onCooldown && <div className="mb-8" />}
+      </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 mb-6 text-sm">{error}</div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-8 items-start">
 
-      {revealing ? (
-        /* ---------- Drawing ---------- */
-        <div className="flex flex-col items-center gap-10">
-          <div className="relative w-56 h-72 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-2xl blur-2xl bg-gold/30" />
-            <div className="mystery-card draw-spin relative w-52 h-72 rounded-2xl flex items-center justify-center bg-gradient-to-br from-navy via-navy-mid to-navy-dark border-2 border-gold/60 shadow-2xl">
-              <div className="relative z-10 text-gold text-6xl animate-spin">✦</div>
+        {/* Card visual */}
+        <div className="flex flex-col items-center gap-4">
+          <div className={`relative rounded-2xl overflow-hidden border-2 shadow-xl w-56 transition-all duration-700 ${
+            revealed && result.passed ? 'border-gold' : 'border-navy/20'
+          } ${revealed && !result.passed ? 'grayscale opacity-60' : ''}`}>
+            {card?.image_url ? (
+              <>
+                <img
+                  src={card.image_url}
+                  alt={revealed ? card.name : 'Mystery card'}
+                  className={`w-full aspect-[11/17] object-cover transition-all duration-700 ${!revealed ? 'blur-2xl scale-110' : ''}`}
+                />
+                {!revealed && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-7xl select-none">🃏</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="w-full aspect-[11/17] bg-mist flex items-center justify-center text-7xl">🃏</div>
+            )}
+          </div>
+
+          {revealed && (
+            <div className={`w-full text-center px-4 py-3 rounded-xl font-bold text-sm ${
+              result.passed
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+              {result.passed
+                ? `🎉 ${result.score}/3 — Added to your collection!`
+                : `${result.score}/3 correct — Better luck tomorrow`}
             </div>
-          </div>
-          <p className="text-navy/50 font-semibold">Drawing your card…</p>
-        </div>
-
-      ) : revealed && newCard ? (
-        /* ---------- Reveal ---------- */
-        <div className="flex flex-col items-center gap-6">
-          <div className="reveal-card">
-            <CardDisplay card={newCard} onClick={setSelectedCard} />
-          </div>
-
-          <p className="text-3xl font-extrabold tracking-wide" style={{ color: rarityCfg.color }}>
-            {rarityCfg.text}
-          </p>
-          <p className="text-navy font-semibold text-lg">{newCard?.name}</p>
-
-          {!onCooldown && (
-            <GlowButton onClick={claimCard} className="px-14 py-4 text-lg">Draw Again</GlowButton>
           )}
         </div>
 
-      ) : onCooldown ? (
-        /* ---------- Cooldown ---------- */
-        <div className="flex flex-col items-center gap-6">
-          <p className="text-green-700 font-semibold bg-green-50 border border-green-200 px-4 py-2 rounded-full">
-            ✓ Card claimed!
-          </p>
-          {lastCard && <CardDisplay card={lastCard} onClick={setSelectedCard} />}
-        </div>
+        {/* Content */}
+        <div className="flex flex-col gap-5">
 
-      ) : (
-        /* ---------- Idle / ready ---------- */
-        <div className="flex flex-col items-center gap-10">
-          <div className="relative w-56 h-72 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-2xl blur-2xl bg-gold/30" />
-            <div className="mystery-card shine-sweep relative w-52 h-72 rounded-2xl flex items-center justify-center bg-gradient-to-br from-navy via-navy-mid to-navy-dark border-2 border-gold/60 shadow-2xl">
-              <div className="relative z-10 text-center">
-                <div className="text-7xl mb-2 drop-shadow-lg">🎴</div>
-                <p className="text-gold-light text-sm font-semibold tracking-widest uppercase">Mystery</p>
+          {/* News summary */}
+          <div className="bg-white rounded-2xl p-6 border border-navy/10 shadow-sm">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-dark font-black mb-3">Today's Story</p>
+            <p className="text-navy/80 leading-relaxed text-sm">{daily.news_summary}</p>
+          </div>
+
+          {/* MCQ — hidden after attempt */}
+          {!revealed ? (
+            <div className="bg-white rounded-2xl p-6 border border-navy/10 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.2em] text-gold-dark font-black mb-5">
+                Answer 3/3 correctly to unlock the card
+              </p>
+
+              <div className="space-y-6">
+                {mcq.map((q, qi) => (
+                  <div key={qi}>
+                    <p className="font-bold text-navy text-sm mb-3">
+                      <span className="text-gold-dark mr-2">{qi + 1}.</span>{q.question}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {q.answers.map((ans, ai) => (
+                        <button
+                          key={ai}
+                          onClick={() => setAnswers(prev => { const n = [...prev]; n[qi] = ai; return n })}
+                          className={`px-4 py-3 rounded-xl text-sm font-semibold text-left border-2 transition-all ${
+                            answers[qi] === ai
+                              ? 'bg-navy text-white border-navy'
+                              : 'bg-white text-navy border-navy/15 hover:border-navy/40'
+                          }`}
+                        >
+                          {ans}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex items-center gap-4">
+                <GlowButton
+                  onClick={handleSubmit}
+                  disabled={answers.some(a => a === null) || submitting}
+                  className="px-8 py-3 disabled:opacity-40"
+                >
+                  {submitting ? 'Checking...' : 'Submit Answers'}
+                </GlowButton>
+                {answers.some(a => a === null) && (
+                  <p className="text-xs text-navy/40">Answer all 3 questions first</p>
+                )}
               </div>
             </div>
-          </div>
-          <GlowButton onClick={claimCard} className="px-14 py-4 text-lg">
-            {lastClaimAt ? 'Draw Again' : "Claim Today's Card"}
-          </GlowButton>
+          ) : (
+            <div className="bg-white rounded-2xl p-6 border border-navy/10 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.2em] text-gold-dark font-black mb-5">Answers</p>
+              <div className="space-y-5">
+                {mcq.map((q, qi) => {
+                  const userAns = result.answers?.[qi]
+                  return (
+                    <div key={qi}>
+                      <p className="font-bold text-navy text-sm mb-2">
+                        <span className="text-gold-dark mr-2">{qi + 1}.</span>{q.question}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {q.answers.map((ans, ai) => (
+                          <div
+                            key={ai}
+                            className={`px-4 py-3 rounded-xl text-sm font-semibold border-2 ${
+                              ai === q.correct
+                                ? 'bg-green-50 border-green-400 text-green-800'
+                                : userAns === ai && ai !== q.correct
+                                ? 'bg-red-50 border-red-300 text-red-700'
+                                : 'bg-white border-navy/10 text-navy/40'
+                            }`}
+                          >
+                            {ans}
+                            {ai === q.correct && ' ✓'}
+                            {userAns === ai && ai !== q.correct && ' ✗'}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-
-      {selectedCard && <CardModal card={selectedCard} onClose={() => setSelectedCard(null)} />}
+      </div>
     </div>
   )
 }

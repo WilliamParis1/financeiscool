@@ -1,0 +1,10 @@
+{
+  "name": "daily-card-generator",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.54.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "openai": "^4.77.0"
+  }
+}

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import { CARD_POSTS_TABLE, isMissingCardPostsTable } from '../lib/cardPostsSchema'
 import GlowButton from '../components/GlowButton'
 
 const SPEECH_LINES = [
@@ -15,10 +14,12 @@ const SPEECH_LINES = [
 
 export default function Home() {
   const { user } = useAuth()
-  const [posts, setPosts] = useState([])
-  const [postsLoading, setPostsLoading] = useState(true)
   const [speechIndex, setSpeechIndex] = useState(0)
   const [speechVisible, setSpeechVisible] = useState(true)
+  const [dailyCards, setDailyCards] = useState([])
+  const [dailyLoading, setDailyLoading] = useState(true)
+
+  const TODAY = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -31,39 +32,30 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
-  useEffect(() => {
-    loadPosts()
-  }, [])
+  useEffect(() => { loadDailyCards() }, [])
 
-  async function loadPosts() {
-    const { data, error } = await supabase
-      .from(CARD_POSTS_TABLE)
+  async function loadDailyCards() {
+    const { data } = await supabase
+      .from('daily_cards')
       .select('*, cards(*)')
-      .eq('is_published', true)
-      .order('published_at', { ascending: false })
-      .limit(6)
-
-    if (isMissingCardPostsTable(error)) {
-      setPosts([])
-      setPostsLoading(false)
-      return
-    }
-
-    setPosts(data || [])
-    setPostsLoading(false)
+      .order('date', { ascending: false })
+      .limit(7)
+    setDailyCards(data || [])
+    setDailyLoading(false)
   }
 
-  function formatDate(date) {
-    if (!date) return ''
-    return new Intl.DateTimeFormat('en', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(new Date(date))
+  function formatDate(dateStr) {
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric'
+    })
   }
+
+  const todayCard = dailyCards.find(d => d.date === TODAY)
+  const pastCards = dailyCards.filter(d => d.date !== TODAY)
 
   return (
     <div className="px-4">
+      {/* Hero */}
       <section className="flex flex-col items-center justify-center min-h-[70vh] text-center">
         <div className="mb-10">
           <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-navy">
@@ -74,29 +66,19 @@ export default function Home() {
           </p>
         </div>
 
-        {/* JP Morgan animation with speech bubble */}
+        {/* JP Morgan animation */}
         <div className="flex flex-col items-center mb-10">
-          {/* Speech bubble */}
           <div
             className="relative bg-white border-2 border-navy/20 rounded-2xl px-5 py-3 shadow-md max-w-xs text-center mb-3 transition-opacity duration-300"
             style={{ opacity: speechVisible ? 1 : 0 }}
           >
             <p className="text-navy font-semibold text-sm">{SPEECH_LINES[speechIndex]}</p>
-            {/* Bubble tail */}
             <div className="absolute left-1/2 -translate-x-1/2 -bottom-[10px] w-0 h-0"
               style={{ borderLeft: '10px solid transparent', borderRight: '10px solid transparent', borderTop: '10px solid white' }} />
             <div className="absolute left-1/2 -translate-x-1/2 -bottom-[12px] w-0 h-0"
               style={{ borderLeft: '11px solid transparent', borderRight: '11px solid transparent', borderTop: '11px solid rgb(15 23 42 / 0.2)' }} />
           </div>
-
-          <video
-            src="/jpmorgananimation.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="h-56 w-auto rounded-2xl shadow-lg"
-          />
+          <video src="/jpmorgananimation.mp4" autoPlay loop muted playsInline className="h-56 w-auto rounded-2xl shadow-lg" />
         </div>
 
         <div className="flex flex-wrap gap-4 justify-center mb-16">
@@ -109,60 +91,74 @@ export default function Home() {
               <Link to="/register">
                 <GlowButton className="px-8 py-3 text-lg">Get Started Free</GlowButton>
               </Link>
-              <Link
-                to="/login"
-                className="border-2 border-navy hover:bg-navy hover:text-white text-navy px-8 py-3 rounded-xl text-lg font-bold transition-colors"
-              >
+              <Link to="/login" className="border-2 border-navy hover:bg-navy hover:text-white text-navy px-8 py-3 rounded-xl text-lg font-bold transition-colors">
                 Login
               </Link>
             </>
           )}
         </div>
-
       </section>
 
-      <section className="max-w-6xl mx-auto pb-20">
-        {postsLoading ? (
-          <div className="bg-white border border-navy/10 rounded-2xl p-10 text-center text-navy/50 shadow-sm">
-            Loading latest card stories...
-          </div>
-        ) : posts.length > 0 && (
-          <div className="space-y-6">
-            {posts.map(post => (
-              <article key={post.id} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[280px_1fr]">
-                <div className="bg-mist p-6 flex items-center justify-center border-b md:border-b-0 md:border-r border-navy/10">
-                  {post.cards ? (
-                    <div className="w-52">
-                      <div className="rounded-2xl border-2 border-gold/50 bg-white shadow-lg overflow-hidden">
-                        <img src={post.cards.image_url} alt={post.cards.name} className="w-full aspect-[5/7] object-contain bg-mist" />
-                        <div className="p-3">
-                          <p className="font-extrabold text-navy truncate">{post.cards.name}</p>
-                          <p className="text-xs uppercase tracking-[0.18em] text-gold-dark font-bold mt-1">{post.cards.rarity}</p>
-                        </div>
-                      </div>
-                    </div>
+      {/* Daily cards feed */}
+      {!dailyLoading && dailyCards.length > 0 && (
+        <section className="max-w-4xl mx-auto pb-24 space-y-6">
+
+          {/* Today's card — blurred mystery */}
+          {todayCard && (
+            <Link to="/daily" className="block group">
+              <article className="bg-white border-2 border-gold/40 rounded-2xl shadow-lg overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr] hover:shadow-xl transition-shadow">
+                <div className="bg-mist flex items-center justify-center p-6 relative min-h-[160px] border-b md:border-b-0 md:border-r border-navy/10">
+                  {todayCard.cards?.image_url ? (
+                    <>
+                      <img
+                        src={todayCard.cards.image_url}
+                        alt="Today's mystery card"
+                        className="w-32 aspect-[11/17] object-cover rounded-xl blur-xl scale-110"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center text-5xl">🃏</div>
+                    </>
                   ) : (
-                    <div className="w-52 aspect-square bg-white border border-navy/10 rounded-2xl flex items-center justify-center text-navy/40 text-sm">
-                      Card unavailable
-                    </div>
+                    <span className="text-5xl">🃏</span>
                   )}
                 </div>
-                <div className="p-6 md:p-8 text-left">
-                  <div className="flex flex-wrap items-center gap-3 mb-3">
-                    {post.published_at && <span className="text-xs font-bold uppercase tracking-[0.2em] text-gold-dark">{formatDate(post.published_at)}</span>}
-                    {post.news_source && <span className="text-xs text-navy/40">{post.news_source}</span>}
+                <div className="p-6 flex flex-col justify-center">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-black uppercase tracking-[0.2em] text-gold-dark">Today · {formatDate(todayCard.date)}</span>
+                    <span className="text-xs bg-gold/20 text-gold-dark font-bold px-2 py-0.5 rounded-full">New</span>
                   </div>
-                  <h3 className="text-2xl font-extrabold text-navy mb-3">{post.title}</h3>
-                  {post.market_summary && (
-                    <p className="text-navy/70 font-semibold mb-4">{post.market_summary}</p>
-                  )}
-                  <p className="text-navy/65 whitespace-pre-line leading-relaxed">{post.explanation}</p>
+                  <h2 className="text-xl font-extrabold text-navy mb-2">???</h2>
+                  <p className="text-navy/60 text-sm line-clamp-3">{todayCard.news_summary}</p>
+                  <p className="mt-3 text-gold-dark font-bold text-sm group-hover:underline">Answer the MCQ to unlock →</p>
                 </div>
               </article>
-            ))}
-          </div>
-        )}
-      </section>
+            </Link>
+          )}
+
+          {/* Past cards — fully visible, no MCQ */}
+          {pastCards.map(daily => (
+            <article key={daily.date} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
+              <div className="bg-mist flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-navy/10">
+                {daily.cards?.image_url ? (
+                  <img
+                    src={daily.cards.image_url}
+                    alt={daily.cards.name}
+                    className="w-32 aspect-[11/17] object-cover rounded-xl shadow"
+                  />
+                ) : (
+                  <div className="w-32 aspect-[11/17] bg-white border border-navy/10 rounded-xl flex items-center justify-center text-navy/40 text-sm">
+                    No image
+                  </div>
+                )}
+              </div>
+              <div className="p-6">
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-navy/40">{formatDate(daily.date)}</span>
+                <h2 className="text-xl font-extrabold text-navy mt-1 mb-3">{daily.cards?.name || '—'}</h2>
+                <p className="text-navy/65 text-sm leading-relaxed">{daily.news_summary}</p>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
     </div>
   )
 }
