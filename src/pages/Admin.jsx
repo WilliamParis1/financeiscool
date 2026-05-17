@@ -38,6 +38,9 @@ function isMissingCardMetadata(error) {
 export default function Admin() {
   const [cards, setCards] = useState([])
   const [posts, setPosts] = useState([])
+  const [dailyCardsList, setDailyCardsList] = useState([])
+  const [editingDaily, setEditingDaily] = useState(null)
+  const [dailySaving, setDailySaving] = useState(false)
   const [availableTags, setAvailableTags] = useState(DEFAULT_CARD_TAGS)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('add')
@@ -76,6 +79,7 @@ export default function Admin() {
   useEffect(() => {
     loadTags()
     loadPosts()
+    loadDailyCardsList()
   }, [])
 
   useEffect(() => {
@@ -351,6 +355,64 @@ export default function Admin() {
     loadPosts()
   }
 
+  async function loadDailyCardsList() {
+    const { data } = await supabase
+      .from('daily_cards')
+      .select('*, cards(*)')
+      .order('created_at', { ascending: false })
+      .limit(60)
+    setDailyCardsList(data || [])
+  }
+
+  async function saveDailyCard() {
+    if (!editingDaily) return
+    setDailySaving(true)
+    setError('')
+    const { error: err } = await supabase
+      .from('daily_cards')
+      .update({ news_summary: editingDaily.news_summary, mcq: editingDaily.mcq })
+      .eq('id', editingDaily.id)
+    setDailySaving(false)
+    if (err) { setError(err.message); return }
+    setDailyCardsList(list => list.map(d => d.id === editingDaily.id ? { ...d, ...editingDaily } : d))
+    setEditingDaily(null)
+    setSuccess('Daily card updated.')
+  }
+
+  async function toggleDailyHidden(daily) {
+    const next = !daily.is_hidden
+    setDailyCardsList(list => list.map(d => d.id === daily.id ? { ...d, is_hidden: next } : d))
+    await supabase.from('daily_cards').update({ is_hidden: next }).eq('id', daily.id)
+  }
+
+  async function deleteDailyCard(daily) {
+    if (!window.confirm(`Delete card "${daily.cards?.name}" (${daily.date})? This also removes the card from the collection.`)) return
+    await supabase.from('daily_attempts').delete().eq('daily_card_id', daily.id)
+    await supabase.from('daily_cards').delete().eq('id', daily.id)
+    await supabase.from('cards').delete().eq('id', daily.card_id)
+    setDailyCardsList(list => list.filter(d => d.id !== daily.id))
+    setSuccess('Daily card deleted.')
+  }
+
+  function startEditDaily(daily) {
+    setEditingDaily({
+      id: daily.id,
+      news_summary: daily.news_summary,
+      mcq: JSON.parse(JSON.stringify(daily.mcq)),
+    })
+  }
+
+  function updateEditMcq(qi, field, value) {
+    setEditingDaily(prev => {
+      const mcq = JSON.parse(JSON.stringify(prev.mcq))
+      if (field === 'question') mcq[qi].question = value
+      else if (field === 'answer0') mcq[qi].answers[0] = value
+      else if (field === 'answer1') mcq[qi].answers[1] = value
+      else if (field === 'correct') mcq[qi].correct = value
+      return { ...prev, mcq }
+    })
+  }
+
   async function addPost(e) {
     e.preventDefault()
     if (!postCardId) { setError('Please choose the card this post is about'); return }
@@ -411,14 +473,14 @@ export default function Admin() {
   return (
     <div className="max-w-5xl mx-auto">
       <h1 className="text-3xl font-extrabold text-navy mb-1">Admin Panel</h1>
-      <p className="text-navy/50 mb-6">{cards.length} cards in the database · {posts.length} homepage posts</p>
+      <p className="text-navy/50 mb-6">{cards.length} cards in the database · {dailyCardsList.length} daily cards</p>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         {[
-          { key: 'add',   label: 'Add Card' },
-          { key: 'cards', label: `Manage Cards (${cards.length})` },
-          { key: 'tags', label: `Tags (${availableTags.length})` },
-          { key: 'posts', label: `Homepage Posts (${posts.length})` },
+          { key: 'add',    label: 'Add Card' },
+          { key: 'cards',  label: `Manage Cards (${cards.length})` },
+          { key: 'tags',   label: `Tags (${availableTags.length})` },
+          { key: 'daily',  label: `Daily Cards (${dailyCardsList.length})` },
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
             className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
@@ -648,143 +710,128 @@ export default function Admin() {
         </div>
       )}
 
-      {tab === 'posts' && (
-        <div className="space-y-8">
-          <div className="bg-white rounded-2xl p-8 border border-navy/10 shadow-lg">
-            <h2 className="text-xl font-bold text-navy mb-2">Write a Finance Card Post</h2>
-            <p className="text-navy/55 mb-6">
-              Pick a card already in the collection, then write the news explanation that will appear on the homepage.
-            </p>
+      {tab === 'daily' && (
+        <div className="space-y-4">
+          {error   && <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 text-sm">{error}</div>}
+          {success && <div className="bg-green-50 border border-green-300 text-green-700 rounded-lg p-3 text-sm">{success}</div>}
 
-            {error   && <div className="bg-red-50 border border-red-300 text-red-700 rounded-lg p-3 mb-5 text-sm">{error}</div>}
-            {success && <div className="bg-green-50 border border-green-300 text-green-700 rounded-lg p-3 mb-5 text-sm">{success}</div>}
-            {postSetupError && (
-              <div className="bg-amber-50 border border-amber-300 text-amber-800 rounded-lg p-3 mb-5 text-sm">
-                {postSetupError}
-                <div className="mt-1 font-semibold">Migration: supabase/migrations/20260516183000_create_card_posts.sql</div>
-              </div>
-            )}
+          {dailyCardsList.length === 0 ? (
+            <div className="text-center py-12 text-navy/50 bg-white rounded-2xl border border-navy/10 shadow-sm">
+              No daily cards generated yet.
+            </div>
+          ) : dailyCardsList.map(daily => (
+            <div key={daily.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-opacity ${daily.is_hidden ? 'opacity-50 border-navy/10' : 'border-navy/10'}`}>
 
-            <form onSubmit={addPost} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm text-navy/60 mb-1 font-medium">Card *</label>
-                  <select value={postCardId} onChange={e => setPostCardId(e.target.value)} required className={inputClass}>
-                    <option value="">Choose the card for this story</option>
-                    {cards.map(card => (
-                      <option key={card.id} value={card.id}>{card.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-navy/60 mb-1 font-medium">Post Title *</label>
-                  <input
-                    type="text"
-                    value={postTitle}
-                    onChange={e => setPostTitle(e.target.value)}
-                    required
-                    placeholder="Example: Inflation Dragon wakes up again"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
+              {/* Card row */}
+              <div className="grid grid-cols-1 md:grid-cols-[80px_1fr_auto] gap-4 p-4 items-start">
+                {daily.cards?.image_url ? (
+                  <img src={daily.cards.image_url} alt={daily.cards?.name} className="w-16 aspect-[11/17] object-cover rounded-lg shadow-sm" />
+                ) : (
+                  <div className="w-16 aspect-[11/17] bg-mist rounded-lg border border-navy/10" />
+                )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm text-navy/60 mb-1 font-medium">News Source / Context</label>
-                  <input
-                    type="text"
-                    value={postSource}
-                    onChange={e => setPostSource(e.target.value)}
-                    placeholder="Example: Fed decision, CPI report, ECB speech"
-                    className={inputClass}
-                  />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className="text-xs font-black uppercase tracking-widest text-gold-dark">{daily.date}</span>
+                    {daily.is_hidden && <span className="text-xs bg-navy/10 text-navy/50 px-2 py-0.5 rounded-full font-bold">Hidden</span>}
+                  </div>
+                  <h3 className="font-extrabold text-navy text-base">{daily.cards?.name || '—'}</h3>
+                  <p className="text-sm text-navy/60 mt-1 line-clamp-2">{daily.news_summary}</p>
                 </div>
-                <div>
-                  <label className="block text-sm text-navy/60 mb-1 font-medium">Short Market Summary</label>
-                  <input
-                    type="text"
-                    value={postSummary}
-                    onChange={e => setPostSummary(e.target.value)}
-                    placeholder="One sentence that frames the card."
-                    className={inputClass}
-                  />
+
+                <div className="flex gap-2 flex-wrap justify-end">
+                  <button
+                    onClick={() => editingDaily?.id === daily.id ? setEditingDaily(null) : startEditDaily(daily)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-bold border border-navy/15 text-navy hover:border-gold hover:text-gold-dark transition-colors"
+                  >
+                    {editingDaily?.id === daily.id ? 'Close' : 'Edit'}
+                  </button>
+                  <button
+                    onClick={() => toggleDailyHidden(daily)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-bold border border-navy/15 text-navy hover:border-navy hover:bg-navy hover:text-white transition-colors"
+                  >
+                    {daily.is_hidden ? 'Show' : 'Hide'}
+                  </button>
+                  <button
+                    onClick={() => deleteDailyCard(daily)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-bold bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm text-navy/60 mb-1 font-medium">Card Explanation *</label>
-                <textarea
-                  value={postExplanation}
-                  onChange={e => setPostExplanation(e.target.value)}
-                  rows={7}
-                  required
-                  placeholder="Write the finance story here: what happened, why it matters, and how the card design represents the news."
-                  className={`${inputClass} resize-y`}
-                />
-              </div>
+              {/* Inline editor */}
+              {editingDaily?.id === daily.id && (
+                <div className="border-t border-navy/10 p-6 bg-mist/40 space-y-5">
+                  <div>
+                    <label className="block text-sm font-semibold text-navy/60 mb-1">News Summary</label>
+                    <textarea
+                      rows={4}
+                      value={editingDaily.news_summary}
+                      onChange={e => setEditingDaily(prev => ({ ...prev, news_summary: e.target.value }))}
+                      className={`${inputClass} resize-y`}
+                    />
+                  </div>
 
-              <label className="inline-flex items-center gap-2 text-sm text-navy/70 font-semibold">
-                <input
-                  type="checkbox"
-                  checked={postPublished}
-                  onChange={e => setPostPublished(e.target.checked)}
-                  className="h-4 w-4 accent-gold"
-                />
-                Publish on homepage immediately
-              </label>
-
-              <button type="submit" disabled={postSubmitting || cards.length === 0}
-                className="block bg-gold hover:bg-gold-dark disabled:opacity-50 text-navy-dark py-3 px-8 rounded-xl font-bold transition-colors">
-                {postSubmitting ? 'Publishing...' : 'Publish Post'}
-              </button>
-            </form>
-          </div>
-
-          <div>
-            <h2 className="text-xl font-bold text-navy mb-4">Existing Homepage Posts</h2>
-            {posts.length === 0 ? (
-              <div className="text-center py-12 text-navy/50 bg-white rounded-2xl border border-navy/10 shadow-sm">
-                No homepage posts yet.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {posts.map(post => (
-                  <div key={post.id} className="bg-white rounded-2xl border border-navy/10 shadow-sm p-4 grid grid-cols-1 md:grid-cols-[96px_1fr_auto] gap-4">
-                    {post.cards?.image_url ? (
-                      <img src={post.cards.image_url} alt={post.cards.name} className="w-20 aspect-[5/7] object-contain bg-mist rounded-xl border border-gold/40" />
-                    ) : (
-                      <div className="w-24 h-24 bg-mist rounded-xl border border-navy/10" />
-                    )}
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="font-extrabold text-navy">{post.title}</h3>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${post.is_published ? 'bg-green-100 text-green-700' : 'bg-navy/10 text-navy/60'}`}>
-                          {post.is_published ? 'Published' : 'Draft'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-navy/50 mb-2">{post.cards?.name}</p>
-                      <p className="text-sm text-navy/65 max-h-10 overflow-hidden">{post.market_summary || post.explanation}</p>
-                    </div>
-                    <div className="flex md:flex-col gap-2">
-                      <button
-                        onClick={() => updatePost(post, { is_published: !post.is_published })}
-                        className="px-3 py-1.5 rounded-lg text-sm font-bold border border-navy/15 text-navy hover:border-gold hover:text-gold-dark transition-colors"
-                      >
-                        {post.is_published ? 'Unpublish' : 'Publish'}
-                      </button>
-                      <button
-                        onClick={() => deletePost(post)}
-                        className="px-3 py-1.5 rounded-lg text-sm font-bold bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
-                      >
-                        Delete
-                      </button>
+                  <div>
+                    <label className="block text-sm font-semibold text-navy/60 mb-3">MCQ Questions</label>
+                    <div className="space-y-4">
+                      {editingDaily.mcq.map((q, qi) => (
+                        <div key={qi} className="bg-white border border-navy/10 rounded-xl p-4 space-y-3">
+                          <div>
+                            <label className="text-xs text-navy/40 font-bold uppercase tracking-wider">Question {qi + 1}</label>
+                            <input
+                              type="text"
+                              value={q.question}
+                              onChange={e => updateEditMcq(qi, 'question', e.target.value)}
+                              className={`${inputClass} mt-1`}
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {[0, 1].map(ai => (
+                              <div key={ai} className={`flex gap-2 items-center p-2 rounded-lg border-2 transition-colors ${q.correct === ai ? 'border-green-400 bg-green-50' : 'border-navy/10'}`}>
+                                <input
+                                  type="text"
+                                  value={q.answers[ai]}
+                                  onChange={e => updateEditMcq(qi, `answer${ai}`, e.target.value)}
+                                  className="flex-1 bg-transparent text-sm text-navy focus:outline-none"
+                                  placeholder={`Answer ${ai === 0 ? 'A' : 'B'}`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => updateEditMcq(qi, 'correct', ai)}
+                                  className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap transition-colors ${q.correct === ai ? 'bg-green-500 text-white' : 'bg-navy/10 text-navy/40 hover:bg-green-100 hover:text-green-700'}`}
+                                >
+                                  {q.correct === ai ? '✓ Correct' : 'Set correct'}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={saveDailyCard}
+                      disabled={dailySaving}
+                      className="bg-gold hover:bg-gold-dark disabled:opacity-50 text-navy-dark px-6 py-2.5 rounded-xl font-bold transition-colors"
+                    >
+                      {dailySaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button
+                      onClick={() => setEditingDaily(null)}
+                      className="px-6 py-2.5 rounded-xl font-bold border border-navy/15 text-navy hover:bg-navy/5 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

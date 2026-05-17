@@ -47,6 +47,7 @@ export default function Home() {
     const { data } = await supabase
       .from('daily_cards')
       .select('*, cards(*)')
+      .neq('is_hidden', true)
       .order('created_at', { ascending: false })
       .limit(50)
 

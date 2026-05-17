@@ -1,0 +1,1 @@
+ALTER TABLE daily_cards ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;
