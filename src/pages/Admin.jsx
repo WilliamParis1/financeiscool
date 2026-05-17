@@ -70,6 +70,8 @@ export default function Admin() {
   const [newTagName, setNewTagName] = useState('')
   const [newTagColor, setNewTagColor] = useState(DEFAULT_TAG_COLOR)
   const [tagSubmitting, setTagSubmitting] = useState(false)
+  const [editingTagName, setEditingTagName] = useState(null)
+  const [editTagDraft, setEditTagDraft] = useState('')
 
   useEffect(() => {
     loadTags()
@@ -298,6 +300,30 @@ export default function Admin() {
     setAvailableTags(tags => tags.filter(t => t.name !== tag.name))
     setSuccess(`Tag "${tag.name}" deleted.`)
     loadCards()
+  }
+
+  async function renameTag(tag, newName) {
+    const trimmed = newName.trim()
+    setEditingTagName(null)
+    if (!trimmed || trimmed === tag.name) return
+    if (availableTags.some(t => t.name.toLowerCase() === trimmed.toLowerCase() && t.name !== tag.name)) {
+      setError('A tag with that name already exists')
+      return
+    }
+    setError('')
+    setSuccess('')
+    try {
+      const { error: insertError } = await supabase.from('card_tags').insert({ name: trimmed, color: tag.color })
+      if (insertError) throw insertError
+      const { error: deleteError } = await supabase.from('card_tags').delete().eq('name', tag.name)
+      if (deleteError) throw deleteError
+      setAvailableTags(tags => tags.map(t => t.name === tag.name ? { ...t, name: trimmed } : t))
+      setSuccess(`Tag renamed to "${trimmed}".`)
+      loadCards()
+    } catch (err) {
+      setError(err.message)
+      loadTags()
+    }
   }
 
   async function updateTagColor(tag, color) {
@@ -576,12 +602,29 @@ export default function Admin() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {availableTags.map(tag => (
                 <div key={tag.name} className="flex items-center justify-between gap-3 border border-navy/10 rounded-lg p-3">
-                  <span
-                    className="px-3 py-1 rounded-full text-xs font-bold"
-                    style={{ backgroundColor: tag.color, color: readableTextColor(tag.color) }}
-                  >
-                    {tag.name}
-                  </span>
+                  {editingTagName === tag.name ? (
+                    <input
+                      autoFocus
+                      value={editTagDraft}
+                      onChange={e => setEditTagDraft(e.target.value)}
+                      onBlur={() => renameTag(tag, editTagDraft)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') renameTag(tag, editTagDraft)
+                        if (e.key === 'Escape') setEditingTagName(null)
+                      }}
+                      className="px-3 py-1 rounded-full text-xs font-bold border-2 border-gold focus:outline-none"
+                      style={{ backgroundColor: tag.color, color: readableTextColor(tag.color) }}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => { setEditingTagName(tag.name); setEditTagDraft(tag.name) }}
+                      className="px-3 py-1 rounded-full text-xs font-bold hover:opacity-80 transition-opacity"
+                      style={{ backgroundColor: tag.color, color: readableTextColor(tag.color) }}
+                      title="Click to rename"
+                    >
+                      {tag.name} ✏️
+                    </button>
+                  )}
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
