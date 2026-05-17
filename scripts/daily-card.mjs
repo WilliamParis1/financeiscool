@@ -139,8 +139,21 @@ async function uploadImage(imageBuffer) {
 
 // ─── Step 5: Save card + daily_card to Supabase ───────────────────────────────
 
+function monthTag() {
+  const d = new Date()
+  const month = d.toLocaleString('en-US', { month: 'long' })
+  return `News ${month} ${d.getFullYear()}`
+}
+
+async function ensureTag(name) {
+  await supabase.from('card_tags').upsert({ name, color: '#3b82f6' }, { onConflict: 'name', ignoreDuplicates: true })
+}
+
 async function saveToDatabase(cardData, imageUrl) {
   console.log('💾 Saving card to database...')
+
+  const tag = monthTag()
+  await ensureTag(tag)
 
   const power = cardData.power
   const rarity = power >= 150 ? 'legendary' : power >= 110 ? 'rare' : 'common'
@@ -153,7 +166,7 @@ async function saveToDatabase(cardData, imageUrl) {
       image_url: imageUrl,
       rarity,
       rarity_weight: 0,
-      tag_names: ['Daily Card'],
+      tag_names: [tag],
       card_dates: [TODAY],
     })
     .select()
