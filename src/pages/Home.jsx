@@ -5,10 +5,31 @@ import { supabase } from '../lib/supabaseClient'
 import { CARD_POSTS_TABLE, isMissingCardPostsTable } from '../lib/cardPostsSchema'
 import GlowButton from '../components/GlowButton'
 
+const SPEECH_LINES = [
+  'Collect a rare card every day',
+  'Hello, I am John Pierpont Morgan',
+  'Trade with other players',
+  'Build your collection',
+  'Make friends',
+]
+
 export default function Home() {
   const { user } = useAuth()
   const [posts, setPosts] = useState([])
   const [postsLoading, setPostsLoading] = useState(true)
+  const [speechIndex, setSpeechIndex] = useState(0)
+  const [speechVisible, setSpeechVisible] = useState(true)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSpeechVisible(false)
+      setTimeout(() => {
+        setSpeechIndex(i => (i + 1) % SPEECH_LINES.length)
+        setSpeechVisible(true)
+      }, 300)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     loadPosts()
@@ -51,6 +72,31 @@ export default function Home() {
           <p className="text-xl text-navy/60 max-w-lg mx-auto">
             Collect a rare card every day, build your collection, and trade with other players.
           </p>
+        </div>
+
+        {/* JP Morgan animation with speech bubble */}
+        <div className="flex flex-col items-center mb-10">
+          {/* Speech bubble */}
+          <div
+            className="relative bg-white border-2 border-navy/20 rounded-2xl px-5 py-3 shadow-md max-w-xs text-center mb-3 transition-opacity duration-300"
+            style={{ opacity: speechVisible ? 1 : 0 }}
+          >
+            <p className="text-navy font-semibold text-sm">{SPEECH_LINES[speechIndex]}</p>
+            {/* Bubble tail */}
+            <div className="absolute left-1/2 -translate-x-1/2 -bottom-[10px] w-0 h-0"
+              style={{ borderLeft: '10px solid transparent', borderRight: '10px solid transparent', borderTop: '10px solid white' }} />
+            <div className="absolute left-1/2 -translate-x-1/2 -bottom-[12px] w-0 h-0"
+              style={{ borderLeft: '11px solid transparent', borderRight: '11px solid transparent', borderTop: '11px solid rgb(15 23 42 / 0.2)' }} />
+          </div>
+
+          <video
+            src="/jpmorgananimation.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="h-56 w-auto rounded-2xl shadow-lg"
+          />
         </div>
 
         <div className="flex flex-wrap gap-4 justify-center mb-16">
