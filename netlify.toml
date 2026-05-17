@@ -3,14 +3,14 @@
   publish = "dist"
 
 [[redirects]]
-  from = "http://financeisfun.com/*"
-  to = "https://financeisfun.com/:splat"
+  from = "http://financetradingcards.com/*"
+  to = "https://financetradingcards.com/:splat"
   status = 301
   force = true
 
 [[redirects]]
-  from = "http://www.financeisfun.com/*"
-  to = "https://financeisfun.com/:splat"
+  from = "http://www.financetradingcards.com/*"
+  to = "https://financetradingcards.com/:splat"
   status = 301
   force = true
 
