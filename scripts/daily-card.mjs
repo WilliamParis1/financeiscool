@@ -21,11 +21,19 @@ const YESTERDAY = new Date(Date.now() - 86400000).toLocaleDateString('en-US', {
   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 })
 
-// ─── Step 1: Check if today's card already exists ────────────────────────────
+// ─── Step 1: Check / clear today's card ──────────────────────────────────────
 
 async function checkAlreadyGenerated() {
   const { data } = await supabase.from('daily_cards').select('date').eq('date', TODAY).single()
   return !!data
+}
+
+async function deleteTodayCard() {
+  const { data: daily } = await supabase.from('daily_cards').select('card_id').eq('date', TODAY).single()
+  if (!daily) return
+  await supabase.from('daily_cards').delete().eq('date', TODAY)
+  await supabase.from('cards').delete().eq('id', daily.card_id)
+  console.log('🗑️  Deleted existing card for today.')
 }
 
 // ─── Step 2: Research with Claude Sonnet + web search ────────────────────────
@@ -189,11 +197,15 @@ async function saveToDatabase(cardData, imageUrl) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log(`\n🃏 Finance Trading Cards — Daily Generator — ${TODAY}\n`)
+  const force = process.env.FORCE === 'true'
+  console.log(`\n🃏 Finance Trading Cards — Daily Generator — ${TODAY}${force ? ' [FORCE]' : ''}\n`)
 
   if (await checkAlreadyGenerated()) {
-    console.log('⏭️  Daily card for today already exists. Skipping.')
-    return
+    if (!force) {
+      console.log('⏭️  Daily card for today already exists. Skipping.')
+      return
+    }
+    await deleteTodayCard()
   }
 
   const cardData = await researchNews()

@@ -3,7 +3,12 @@ name: Daily Card Generator
 on:
   schedule:
     - cron: '0 4 * * *'  # 6:00 AM Paris time (CEST = UTC+2)
-  workflow_dispatch:      # allows manual trigger from GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force regenerate (replaces today card if it exists)'
+        type: boolean
+        default: false
 
 jobs:
   generate:
@@ -30,4 +35,5 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FORCE: ${{ inputs.force }}
         run: node daily-card.mjs
