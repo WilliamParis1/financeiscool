@@ -44,7 +44,7 @@ export default function Leaderboard() {
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-3xl font-extrabold text-navy mb-2">Leaderboard</h1>
-      <p className="text-navy/50 mb-6">Top collectors in Finance is Cool Cards</p>
+      <p className="text-navy/50 mb-6">Top collectors in Finance Trading Cards</p>
 
       <div className="flex gap-2 mb-6 flex-wrap">
         {[

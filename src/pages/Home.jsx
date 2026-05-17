@@ -46,7 +46,7 @@ export default function Home() {
       <section className="flex flex-col items-center justify-center min-h-[70vh] text-center">
         <div className="mb-10">
           <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-navy">
-            Finance is Cool <span className="text-gold">Cards</span>
+            Finance <span className="text-gold">Trading Cards</span>
           </h1>
           <p className="text-xl text-navy/60 max-w-lg mx-auto">
             Collect a rare card every day, build your collection, and trade with other players.

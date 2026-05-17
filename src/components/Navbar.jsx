@@ -32,10 +32,8 @@ export default function Navbar() {
     <nav className="bg-white border-b border-navy/10 sticky top-0 z-40 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="text-xl font-extrabold tracking-tight flex items-center gap-1.5">
-            <span className="text-gold">◆</span>
-            <span className="text-navy">Finance is Cool</span>
-            <span className="text-gold">Cards</span>
+          <Link to="/">
+            <img src="/logo.png" alt="Finance Trading Cards" className="h-10 w-auto" />
           </Link>
 
           {/* Desktop nav */}
@@ -63,12 +61,15 @@ export default function Navbar() {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setAvatarOpen(o => !o)}
-                    className="w-9 h-9 rounded-full bg-navy flex items-center justify-center hover:bg-navy-mid transition-colors ring-2 ring-gold/30 hover:ring-gold/60"
+                    className="w-9 h-9 rounded-full bg-navy flex items-center justify-center hover:bg-navy-mid transition-colors ring-2 ring-gold/30 hover:ring-gold/60 overflow-hidden"
                   >
-                    {/* Default person icon */}
-                    <svg className="w-5 h-5 text-gold" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                    </svg>
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                    ) : (
+                      <svg className="w-5 h-5 text-gold" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                      </svg>
+                    )}
                   </button>
 
                   {avatarOpen && (
