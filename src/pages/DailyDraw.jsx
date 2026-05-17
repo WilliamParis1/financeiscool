@@ -5,7 +5,7 @@ import CardDisplay from '../components/CardDisplay'
 import CardModal from '../components/CardModal'
 import GlowButton from '../components/GlowButton'
 
-const CLAIM_COOLDOWN_MS = 24 * 60 * 60 * 1000
+const CLAIM_COOLDOWN_MS = 60 * 1000
 
 function pickWeightedCard(cards) {
   const total = cards.reduce((sum, c) => sum + Math.max(0, c.rarity_weight || 0), 0)
