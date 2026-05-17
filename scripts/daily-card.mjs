@@ -28,63 +28,23 @@ async function checkAlreadyGenerated() {
   return !!data
 }
 
-// ─── Step 2: Research with Claude Opus + web search ──────────────────────────
+// ─── Step 2: Research with Claude Sonnet + web search ────────────────────────
 
 async function researchNews() {
   console.log('🔍 Researching yesterday\'s finance news with Claude...')
 
-  const researchPrompt = `Today is ${TODAY}. Yesterday was ${YESTERDAY}.
+  const researchPrompt = `Yesterday was ${YESTERDAY}. Search for the single most important global finance/markets story from yesterday using Reuters, Bloomberg, FT, or WSJ. Then output ONLY this JSON (no markdown):
+{"card_name":"≤15 chars","news_summary":"3-4 sentence journalist summary with historical context","mcq":[{"question":"...","answers":["A","B"],"correct":0},{"question":"...","answers":["A","B"],"correct":1},{"question":"...","answers":["A","B"],"correct":0}],"attacks":[{"title":"≤15 chars","info":"≤35 chars"},{"title":"≤15 chars","info":"≤35 chars"},{"title":"≤15 chars","info":"≤35 chars"}],"power":120,"image_description":"vivid one-paragraph card artwork scene"}
 
-Find the most important finance news that came out yesterday by cross-researching these websites:
-https://www.reuters.com/markets/
-https://www.bloomberg.com/markets
-https://www.ft.com/markets
-https://www.wsj.com/finance
-https://www.theinformation.com/finance
-https://www.lemonde.fr/en/economie/
-https://www.barrons.com/topics/markets
-https://www.semafor.com/vertical/business
-
-Once you identify the most important story, produce the following:
-
-1. A short summary written like a professional journalist covering when, what, where, why and how. End with one sentence of historical context.
-
-2. A 3-question MCQ on key information from the summary. Each question has exactly 2 answer choices (one correct, one wrong). Make the questions difficult but fair: one about a number, one about a concept, one unique detail.
-
-3. A card name — maximum 15 characters including spaces.
-
-4. Three card elements (attacks):
-   - Element I: Context — answers When? Who? Where? (title max 15 chars, explanation max 35 chars with key figures)
-   - Element II: Why? — the reason behind the news (same limits)
-   - Element III: Analysis — an interesting insight putting the news in context (same limits)
-
-5. A power score between 80 and 180 (multiples of 10 only, e.g. 90, 130, 160) based on how significant the news is.
-
-Output your entire response as a single JSON object (no markdown, no prose, just raw JSON):
-{
-  "card_name": "string max 15 chars",
-  "news_summary": "string — full journalist summary",
-  "mcq": [
-    {"question": "...", "answers": ["option A", "option B"], "correct": 0},
-    {"question": "...", "answers": ["option A", "option B"], "correct": 1},
-    {"question": "...", "answers": ["option A", "option B"], "correct": 0}
-  ],
-  "attacks": [
-    {"title": "string max 15 chars", "info": "string max 35 chars"},
-    {"title": "string max 15 chars", "info": "string max 35 chars"},
-    {"title": "string max 15 chars", "info": "string max 35 chars"}
-  ],
-  "power": 120,
-  "image_description": "One paragraph describing the scene to paint for the card artwork — vivid, artistic, finance-themed."
-}`
+MCQ rules: 3 questions, 2 choices each, one about a number, one conceptual, one specific detail. Power: 80-180 in multiples of 10.`
 
   let messages = [{ role: 'user', content: researchPrompt }]
   let finalText = ''
 
-  for (let turn = 0; turn < 8; turn++) {
+  for (let turn = 0; turn < 5; turn++) {
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-7',
-      max_tokens: 8000,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
       messages,
     })
