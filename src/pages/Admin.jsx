@@ -382,7 +382,11 @@ export default function Admin() {
   async function toggleDailyHidden(daily) {
     const next = !daily.is_hidden
     setDailyCardsList(list => list.map(d => d.id === daily.id ? { ...d, is_hidden: next } : d))
-    await supabase.from('daily_cards').update({ is_hidden: next }).eq('id', daily.id)
+    const { error: err } = await supabase.from('daily_cards').update({ is_hidden: next }).eq('id', daily.id)
+    if (err) {
+      setError(`Failed to update visibility: ${err.message}`)
+      setDailyCardsList(list => list.map(d => d.id === daily.id ? { ...d, is_hidden: daily.is_hidden } : d))
+    }
   }
 
   async function deleteDailyCard(daily) {
