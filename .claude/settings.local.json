@@ -11,7 +11,16 @@
       "Bash(Select-Object -First 50)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\willi\\\\Desktop\\\\financeisfun\\\\.claude\\\\worktrees\\\\cool-murdock-e0423d\" -Recurse -Filter \"*.sql\")",
       "Bash(Select-Object -First 20)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "PowerShell(Copy-Item \"C:\\\\Users\\\\willi\\\\Desktop\\\\financeisfun\\\\logo.png\" \"C:\\\\Users\\\\willi\\\\Desktop\\\\financeisfun\\\\.claude\\\\worktrees\\\\cool-murdock-e0423d\\\\public\\\\logo.png\" -Force)",
+      "Bash(git commit -m 'Update logo to cropped version *)",
+      "Bash(git commit -m 'Remove feature cards section from home page *)",
+      "Bash(npm run *)",
+      "Bash(npx netlify-cli *)",
+      "PowerShell(Get-Content \"$env:USERPROFILE\\\\.netlify\\\\config.json\" -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-ChildItem \"$env:APPDATA\\\\netlify\\\\Config\" | ForEach-Object { $_.FullName }; Get-Content \"$env:APPDATA\\\\netlify\\\\Config\\\\config.json\" -ErrorAction SilentlyContinue)",
+      "Bash(NETLIFY_AUTH_TOKEN=nfp_z3Z5xh7XCpN3JUMpsChnEZbDv5eLPi739bcd npx netlify-cli sites:list)",
+      "Bash(NETLIFY_AUTH_TOKEN=nfp_z3Z5xh7XCpN3JUMpsChnEZbDv5eLPi739bcd npx netlify-cli deploy --prod --dir=dist --site=0c41ddcc-2864-49e4-8675-bb5e8231fd66)"
     ]
   }
 }

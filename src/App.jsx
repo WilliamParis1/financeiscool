@@ -11,6 +11,7 @@ import Profile from './pages/Profile'
 import Leaderboard from './pages/Leaderboard'
 import Trade from './pages/Trade'
 import Admin from './pages/Admin'
+import Explore from './pages/Explore'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/explore" element={<Explore />} />
               <Route path="/profile/:username" element={<Profile />} />
               <Route path="/daily" element={<ProtectedRoute><DailyDraw /></ProtectedRoute>} />
               <Route path="/collection" element={<ProtectedRoute><Collection /></ProtectedRoute>} />
