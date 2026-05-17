@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
@@ -24,24 +24,25 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false)
   const [expanded, setExpanded] = useState({})
   const [playing, setPlaying] = useState(false)
-  const audioRef = useState(() => typeof Audio !== 'undefined' ? new Audio('/auramusic.mp3') : null)[0]
+  const audioRef = useRef(null)
 
   const TODAY = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
-    if (!audioRef) return
-    const handleEnd = () => setPlaying(false)
-    audioRef.addEventListener('ended', handleEnd)
+    const audio = new Audio('/auramusic.mp3')
+    audioRef.current = audio
+    audio.addEventListener('ended', () => setPlaying(false))
     return () => {
-      audioRef.removeEventListener('ended', handleEnd)
-      audioRef.pause()
+      audio.pause()
+      audio.src = ''
     }
   }, [])
 
   function toggleAudio() {
-    if (!audioRef) return
-    audioRef.currentTime = 0
-    audioRef.play()
+    const audio = audioRef.current
+    if (!audio) return
+    audio.currentTime = 0
+    audio.play()
     setPlaying(true)
   }
 
