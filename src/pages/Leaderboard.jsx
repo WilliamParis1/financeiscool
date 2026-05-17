@@ -12,17 +12,18 @@ export default function Leaderboard() {
   async function loadLeaderboard() {
     const [{ data: userCards }, { data: profiles }] = await Promise.all([
       supabase.from('user_cards').select('user_id, quantity, cards!inner(rarity)'),
-      supabase.from('profiles').select('id, username'),
+      supabase.from('profiles').select('id, username, avatar_url'),
     ])
 
     if (!userCards || !profiles) { setLoading(false); return }
 
-    const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.username]))
+    const profileMap = Object.fromEntries(profiles.map(p => [p.id, { username: p.username, avatar_url: p.avatar_url }]))
     const userMap = {}
 
     userCards.forEach(uc => {
       const uid = uc.user_id
-      if (!userMap[uid]) userMap[uid] = { username: profileMap[uid], total: 0, common: 0, rare: 0, legendary: 0 }
+      const prof = profileMap[uid] || {}
+      if (!userMap[uid]) userMap[uid] = { username: prof.username, avatar_url: prof.avatar_url, total: 0, common: 0, rare: 0, legendary: 0 }
       const qty = uc.quantity || 1
       userMap[uid].total += qty
       const r = uc.cards?.rarity
@@ -83,8 +84,15 @@ export default function Leaderboard() {
                 <tr key={player.username} className="border-b border-navy/5 hover:bg-mist transition-colors">
                   <td className={`p-4 font-bold ${MEDALS[i] || 'text-navy/40'}`}>{i + 1}</td>
                   <td className="p-4">
-                    <Link to={`/profile/${player.username}`} className="text-navy hover:text-gold-dark transition-colors font-semibold">
-                      {player.username}
+                    <Link to={`/profile/${player.username}`} className="flex items-center gap-2.5 hover:text-gold-dark transition-colors">
+                      {player.avatar_url ? (
+                        <img src={player.avatar_url} alt={player.username} className="w-7 h-7 rounded-full object-cover shrink-0 border border-navy/10" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-navy to-navy-dark flex items-center justify-center text-gold text-xs font-bold shrink-0">
+                          {player.username[0].toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-navy font-semibold">{player.username}</span>
                     </Link>
                   </td>
                   <td className="p-4 text-right text-navy">{player.total}</td>
