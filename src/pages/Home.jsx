@@ -49,15 +49,17 @@ export default function Home() {
       .from('daily_cards')
       .select('*, cards(*)')
       .order('created_at', { ascending: false })
-      .limit(20)
-    // Deduplicate: keep only the latest card per date
-    const seen = new Set()
-    const unique = (data || []).filter(d => {
+      .limit(50)
+    const all = data || []
+    // All cards for today (latest first), then one per past day (latest only)
+    const todayAll = all.filter(d => d.date === TODAY)
+    const seen = new Set([TODAY])
+    const pastOne = all.filter(d => {
       if (seen.has(d.date)) return false
       seen.add(d.date)
       return true
-    }).slice(0, 7)
-    setDailyCards(unique)
+    }).slice(0, 6)
+    setDailyCards([...todayAll, ...pastOne])
     setDailyLoading(false)
   }
 
@@ -105,7 +107,9 @@ export default function Home() {
     })
   }
 
-  const todayCard = dailyCards.find(d => d.date === TODAY)
+  const todayCards = dailyCards.filter(d => d.date === TODAY)
+  const todayCard = todayCards[0] || null
+  const extraTodayCards = todayCards.slice(1)
   const pastCards = dailyCards.filter(d => d.date !== TODAY)
   const revealed = !!todayAttempt
 
@@ -249,35 +253,43 @@ export default function Home() {
             </article>
           )}
 
-          {/* Past cards — same height as image, truncated text */}
-          {pastCards.map(daily => (
-            <article key={daily.date} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
+          {/* Earlier cards from today (force-generated) */}
+          {extraTodayCards.map(daily => (
+            <article key={daily.id || daily.date + daily.created_at} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
               <div className="bg-mist flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-navy/10">
                 {daily.cards?.image_url ? (
-                  <img
-                    src={daily.cards.image_url}
-                    alt={daily.cards.name}
-                    className="w-32 aspect-[11/17] object-cover rounded-xl shadow"
-                  />
+                  <img src={daily.cards.image_url} alt={daily.cards.name} className="w-32 aspect-[11/17] object-cover rounded-xl shadow" />
                 ) : (
-                  <div className="w-32 aspect-[11/17] bg-white border border-navy/10 rounded-xl flex items-center justify-center text-navy/40 text-sm">
-                    No image
-                  </div>
+                  <div className="w-32 aspect-[11/17] bg-white border border-navy/10 rounded-xl" />
+                )}
+              </div>
+              <div className="p-6 flex flex-col justify-center">
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-navy/40">Today (earlier) · {formatDate(daily.date)}</span>
+                <h2 className="text-xl font-extrabold text-navy mt-1 mb-3">{daily.cards?.name || '—'}</h2>
+                <p className={`text-navy/65 text-sm leading-relaxed ${!expanded[daily.id] ? 'line-clamp-3' : ''}`}>{daily.news_summary}</p>
+                {!expanded[daily.id] && (
+                  <button onClick={() => setExpanded(e => ({ ...e, [daily.id]: true }))} className="mt-1 text-gold-dark text-sm font-bold hover:underline text-left">Read more...</button>
+                )}
+              </div>
+            </article>
+          ))}
+
+          {/* Past cards — same height as image, truncated text */}
+          {pastCards.map(daily => (
+            <article key={daily.id || daily.date} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
+              <div className="bg-mist flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-navy/10">
+                {daily.cards?.image_url ? (
+                  <img src={daily.cards.image_url} alt={daily.cards.name} className="w-32 aspect-[11/17] object-cover rounded-xl shadow" />
+                ) : (
+                  <div className="w-32 aspect-[11/17] bg-white border border-navy/10 rounded-xl flex items-center justify-center text-navy/40 text-sm">No image</div>
                 )}
               </div>
               <div className="p-6 flex flex-col justify-center">
                 <span className="text-xs font-black uppercase tracking-[0.2em] text-navy/40">{formatDate(daily.date)}</span>
                 <h2 className="text-xl font-extrabold text-navy mt-1 mb-3">{daily.cards?.name || '—'}</h2>
-                <p className={`text-navy/65 text-sm leading-relaxed ${!expanded[daily.date] ? 'line-clamp-3' : ''}`}>
-                  {daily.news_summary}
-                </p>
-                {!expanded[daily.date] && (
-                  <button
-                    onClick={() => setExpanded(e => ({ ...e, [daily.date]: true }))}
-                    className="mt-1 text-gold-dark text-sm font-bold hover:underline text-left"
-                  >
-                    Read more...
-                  </button>
+                <p className={`text-navy/65 text-sm leading-relaxed ${!expanded[daily.id] ? 'line-clamp-3' : ''}`}>{daily.news_summary}</p>
+                {!expanded[daily.id] && (
+                  <button onClick={() => setExpanded(e => ({ ...e, [daily.id]: true }))} className="mt-1 text-gold-dark text-sm font-bold hover:underline text-left">Read more...</button>
                 )}
               </div>
             </article>
