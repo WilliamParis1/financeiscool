@@ -28,13 +28,6 @@ async function checkAlreadyGenerated() {
   return !!data
 }
 
-async function deleteTodayCard() {
-  const { data: daily } = await supabase.from('daily_cards').select('card_id').eq('date', TODAY).single()
-  if (!daily) return
-  await supabase.from('daily_cards').delete().eq('date', TODAY)
-  await supabase.from('cards').delete().eq('id', daily.card_id)
-  console.log('🗑️  Deleted existing card for today.')
-}
 
 // ─── Step 2: Research with Claude Sonnet + web search ────────────────────────
 
@@ -200,12 +193,9 @@ async function main() {
   const force = process.env.FORCE === 'true'
   console.log(`\n🃏 Finance Trading Cards — Daily Generator — ${TODAY}${force ? ' [FORCE]' : ''}\n`)
 
-  if (await checkAlreadyGenerated()) {
-    if (!force) {
-      console.log('⏭️  Daily card for today already exists. Skipping.')
-      return
-    }
-    await deleteTodayCard()
+  if (!force && await checkAlreadyGenerated()) {
+    console.log('⏭️  Daily card for today already exists. Skipping.')
+    return
   }
 
   const cardData = await researchNews()

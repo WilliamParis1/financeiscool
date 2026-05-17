@@ -48,9 +48,16 @@ export default function Home() {
     const { data } = await supabase
       .from('daily_cards')
       .select('*, cards(*)')
-      .order('date', { ascending: false })
-      .limit(7)
-    setDailyCards(data || [])
+      .order('created_at', { ascending: false })
+      .limit(20)
+    // Deduplicate: keep only the latest card per date
+    const seen = new Set()
+    const unique = (data || []).filter(d => {
+      if (seen.has(d.date)) return false
+      seen.add(d.date)
+      return true
+    }).slice(0, 7)
+    setDailyCards(unique)
     setDailyLoading(false)
   }
 
