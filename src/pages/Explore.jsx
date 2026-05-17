@@ -4,10 +4,12 @@ import { useAuth } from '../contexts/AuthContext'
 import { readableTextColor, normalizeTagColor } from '../lib/cardMetadata'
 
 const RARITY_STYLES = {
-  common:    { border: 'border-navy/25',  badge: 'bg-navy/10 text-navy',        label: 'Common'    },
-  rare:      { border: 'border-blue-500', badge: 'bg-blue-100 text-blue-700',   label: 'Rare'      },
-  legendary: { border: 'border-gold',     badge: 'bg-gold/20 text-gold-dark',   label: 'Legendary' },
+  common:    { border: 'border-navy/25',  badge: 'bg-navy/10 text-navy',       label: 'Common'    },
+  rare:      { border: 'border-blue-500', badge: 'bg-blue-100 text-blue-700',  label: 'Rare'      },
+  legendary: { border: 'border-gold',     badge: 'bg-gold/20 text-gold-dark',  label: 'Legendary' },
 }
+
+const RARITY_ORDER = { legendary: 0, rare: 1, common: 2 }
 
 export default function Explore() {
   const { user } = useAuth()
@@ -17,21 +19,25 @@ export default function Explore() {
   const [loading, setLoading] = useState(true)
   const [rarityFilter, setRarityFilter] = useState('all')
   const [tagFilter, setTagFilter] = useState('all')
+  const [ownedFilter, setOwnedFilter] = useState('all') // 'all' | 'owned' | 'unowned'
 
-  useEffect(() => {
-    load()
-  }, [user])
+  useEffect(() => { load() }, [user])
 
   async function load() {
     const queries = [
-      supabase.from('cards').select('id, name, rarity, tag_names').order('name'),
+      supabase.from('cards').select('id, name, rarity, tag_names'),
       supabase.from('card_tags').select('name, color').order('name'),
     ]
     if (user) queries.push(supabase.from('user_cards').select('card_id').eq('user_id', user.id))
 
     const [{ data: cardData }, { data: tagData }, userCardsResult] = await Promise.all(queries)
 
-    setCards(cardData || [])
+    const sorted = (cardData || []).sort((a, b) => {
+      const rd = (RARITY_ORDER[a.rarity] ?? 3) - (RARITY_ORDER[b.rarity] ?? 3)
+      return rd !== 0 ? rd : a.name.localeCompare(b.name)
+    })
+
+    setCards(sorted)
     setTags(tagData || [])
     if (userCardsResult?.data) {
       setOwnedIds(new Set(userCardsResult.data.map(uc => uc.card_id)))
@@ -39,11 +45,13 @@ export default function Explore() {
     setLoading(false)
   }
 
-  const tagColorMap = Object.fromEntries((tags).map(t => [t.name, t.color]))
+  const tagColorMap = Object.fromEntries(tags.map(t => [t.name, t.color]))
 
   const filtered = cards.filter(card => {
     if (rarityFilter !== 'all' && card.rarity !== rarityFilter) return false
     if (tagFilter !== 'all' && !(card.tag_names || []).includes(tagFilter)) return false
+    if (ownedFilter === 'owned' && !ownedIds.has(card.id)) return false
+    if (ownedFilter === 'unowned' && ownedIds.has(card.id)) return false
     return true
   })
 
@@ -57,8 +65,9 @@ export default function Explore() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-8">
-        {/* Rarity filter */}
+      <div className="flex flex-wrap gap-3 mb-6">
+
+        {/* Rarity */}
         <div className="flex gap-2 flex-wrap">
           {['all', 'common', 'rare', 'legendary'].map(r => (
             <button
@@ -73,7 +82,28 @@ export default function Explore() {
           ))}
         </div>
 
-        {/* Tag filter */}
+        {/* Owned toggle — only shown when logged in */}
+        {user && (
+          <div className="flex gap-1 bg-navy/5 rounded-full p-1">
+            {[
+              { value: 'all',     label: 'All'        },
+              { value: 'owned',   label: '✅ Owned'   },
+              { value: 'unowned', label: '☐ Missing'  },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setOwnedFilter(value)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  ownedFilter === value ? 'bg-white text-navy shadow-sm' : 'text-navy/50 hover:text-navy'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Tags */}
         {tags.length > 0 && (
           <div className="flex gap-2 flex-wrap">
             <button
@@ -105,13 +135,11 @@ export default function Explore() {
         )}
       </div>
 
-      {/* Count */}
       <p className="text-sm text-navy/40 mb-4">
         {filtered.length} {filtered.length === 1 ? 'card' : 'cards'}
-        {rarityFilter !== 'all' || tagFilter !== 'all' ? ' matching filters' : ''}
+        {rarityFilter !== 'all' || tagFilter !== 'all' || ownedFilter !== 'all' ? ' matching filters' : ''}
       </p>
 
-      {/* Grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-navy/40">No cards match these filters.</div>
       ) : (
@@ -126,7 +154,7 @@ export default function Explore() {
                 key={card.id}
                 className={`relative bg-white rounded-xl border-2 p-3 flex flex-col gap-2 ${style.border} ${
                   card.rarity === 'rare' ? 'shadow-[0_0_12px_rgba(37,99,235,0.3)]' : 'shadow-sm'
-                }`}
+                } ${!owned && user ? 'opacity-60' : ''}`}
               >
                 {owned && (
                   <span className="absolute top-2 right-2 text-base leading-none" title="You own this card">✅</span>
