@@ -70,7 +70,7 @@ export default function Home() {
             Finance <span className="text-gold">Trading Cards</span>
           </h1>
           <p className="text-xl text-navy/60 max-w-lg mx-auto">
-            Collect a rare card every day, build your collection, and trade with other players.
+            +3,000 aura for joining us, learn about finance and economics the fun way
           </p>
         </div>
 
