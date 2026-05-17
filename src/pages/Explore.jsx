@@ -143,7 +143,7 @@ export default function Explore() {
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-navy/40">No cards match these filters.</div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filtered.map(card => {
             const style = RARITY_STYLES[card.rarity] || RARITY_STYLES.common
             const owned = ownedIds.has(card.id)
@@ -152,36 +152,33 @@ export default function Explore() {
             return (
               <div
                 key={card.id}
-                className={`relative bg-white rounded-xl border-2 p-3 flex flex-col gap-2 ${style.border} ${
+                className={`relative bg-white rounded-xl border-2 p-4 flex flex-col gap-3 ${style.border} ${
                   card.rarity === 'rare' ? 'shadow-[0_0_12px_rgba(37,99,235,0.3)]' : 'shadow-sm'
                 } ${!owned && user ? 'opacity-60' : ''}`}
               >
                 {owned && (
-                  <span className="absolute top-2 right-2 text-base leading-none" title="You own this card">✅</span>
+                  <span className="absolute top-3 right-3 text-lg leading-none" title="You own this card">✅</span>
                 )}
 
-                <p className="font-bold text-navy text-sm leading-snug pr-5">{card.name}</p>
+                <p className="font-bold text-navy text-base leading-snug text-center pr-6">{card.name}</p>
 
-                <span className={`self-start text-xs px-1.5 py-0.5 rounded-full font-semibold ${style.badge}`}>
-                  {style.label}
-                </span>
-
-                {cardTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {cardTags.map(tagName => {
-                      const color = normalizeTagColor(tagColorMap[tagName])
-                      return (
-                        <span
-                          key={tagName}
-                          className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
-                          style={{ backgroundColor: color, color: readableTextColor(color) }}
-                        >
-                          {tagName}
-                        </span>
-                      )
-                    })}
-                  </div>
-                )}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${style.badge}`}>
+                    {style.label}
+                  </span>
+                  {cardTags.map(tagName => {
+                    const color = normalizeTagColor(tagColorMap[tagName])
+                    return (
+                      <span
+                        key={tagName}
+                        className="text-[11px] px-2 py-0.5 rounded-full font-semibold"
+                        style={{ backgroundColor: color, color: readableTextColor(color) }}
+                      >
+                        {tagName}
+                      </span>
+                    )
+                  })}
+                </div>
               </div>
             )
           })}
