@@ -127,7 +127,7 @@ The card should look premium, collectible, and artistic.`
 async function uploadImage(imageBuffer) {
   console.log('📤 Uploading image to Supabase...')
 
-  const fileName = `daily-${TODAY}.png`
+  const fileName = `daily-${TODAY}-${Date.now()}.png`
   const { error } = await supabase.storage
     .from('card-images')
     .upload(fileName, imageBuffer, { contentType: 'image/png', upsert: true })

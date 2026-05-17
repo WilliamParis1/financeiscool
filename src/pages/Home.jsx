@@ -37,21 +37,20 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
-  useEffect(() => { loadDailyCards() }, [])
+  // Reload when user changes so attempt state is fresh
+  useEffect(() => { loadData() }, [user])
 
-  useEffect(() => {
-    if (user) loadTodayAttempt()
-    else setAttemptLoaded(true)
-  }, [user])
+  async function loadData() {
+    setDailyLoading(true)
+    setAttemptLoaded(false)
 
-  async function loadDailyCards() {
     const { data } = await supabase
       .from('daily_cards')
       .select('*, cards(*)')
       .order('created_at', { ascending: false })
       .limit(50)
+
     const all = data || []
-    // All cards for today (latest first), then one per past day (latest only)
     const todayAll = all.filter(d => d.date === TODAY)
     const seen = new Set([TODAY])
     const pastOne = all.filter(d => {
@@ -59,18 +58,23 @@ export default function Home() {
       seen.add(d.date)
       return true
     }).slice(0, 6)
+
     setDailyCards([...todayAll, ...pastOne])
     setDailyLoading(false)
-  }
 
-  async function loadTodayAttempt() {
-    const { data } = await supabase
-      .from('daily_attempts')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('date', TODAY)
-      .single()
-    setTodayAttempt(data || null)
+    // Load attempt for the specific latest card (not just by date)
+    const latestToday = todayAll[0]
+    if (user && latestToday?.id) {
+      const { data: attemptData } = await supabase
+        .from('daily_attempts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('daily_card_id', latestToday.id)
+        .maybeSingle()
+      setTodayAttempt(attemptData || null)
+    } else {
+      setTodayAttempt(null)
+    }
     setAttemptLoaded(true)
   }
 
@@ -82,13 +86,14 @@ export default function Home() {
     const score = answers.reduce((s, a, i) => s + (a === mcq[i].correct ? 1 : 0), 0)
     const passed = score === 3
 
-    await supabase.from('daily_attempts').insert({
+    await supabase.from('daily_attempts').upsert({
       user_id: user.id,
       date: TODAY,
+      daily_card_id: daily.id,
       answers,
       score,
       passed,
-    })
+    }, { onConflict: 'user_id,daily_card_id' })
 
     if (passed) {
       await supabase.from('user_cards').upsert(
@@ -163,7 +168,7 @@ export default function Home() {
       {!dailyLoading && dailyCards.length > 0 && (
         <section className="max-w-4xl mx-auto pb-24 space-y-6">
 
-          {/* Today's card */}
+          {/* Today's latest card — full MCQ treatment */}
           {todayCard && (
             <article className="bg-white border-2 border-gold/40 rounded-2xl shadow-lg overflow-hidden">
               <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
@@ -196,7 +201,7 @@ export default function Home() {
                   <p className="text-navy/70 text-sm leading-relaxed">{todayCard.news_summary}</p>
 
                   {/* MCQ — only if not yet attempted and user is logged in */}
-                  {!revealed && user && attemptLoaded && (
+                  {attemptLoaded && !revealed && user && (
                     <div className="border-t border-navy/10 pt-4">
                       <p className="text-xs uppercase tracking-[0.2em] text-gold-dark font-black mb-4">
                         Answer 3/3 correctly to unlock the card
@@ -241,7 +246,7 @@ export default function Home() {
                   )}
 
                   {/* Not logged in */}
-                  {!revealed && !user && (
+                  {!user && (
                     <div className="border-t border-navy/10 pt-4">
                       <Link to="/login" className="text-gold-dark font-bold text-sm hover:underline">
                         Login to unlock today's card →
@@ -255,7 +260,7 @@ export default function Home() {
 
           {/* Earlier cards from today (force-generated) */}
           {extraTodayCards.map(daily => (
-            <article key={daily.id || daily.date + daily.created_at} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
+            <article key={daily.id} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
               <div className="bg-mist flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-navy/10">
                 {daily.cards?.image_url ? (
                   <img src={daily.cards.image_url} alt={daily.cards.name} className="w-32 aspect-[11/17] object-cover rounded-xl shadow" />
@@ -274,9 +279,9 @@ export default function Home() {
             </article>
           ))}
 
-          {/* Past cards — same height as image, truncated text */}
+          {/* Past cards */}
           {pastCards.map(daily => (
-            <article key={daily.id || daily.date} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
+            <article key={daily.id} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
               <div className="bg-mist flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-navy/10">
                 {daily.cards?.image_url ? (
                   <img src={daily.cards.image_url} alt={daily.cards.name} className="w-32 aspect-[11/17] object-cover rounded-xl shadow" />
