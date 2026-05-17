@@ -287,6 +287,19 @@ export default function Admin() {
     }
   }
 
+  async function deleteTag(tag) {
+    if (!window.confirm(`Delete tag "${tag.name}"? It will be removed from all cards that use it.`)) return
+    setError('')
+    setSuccess('')
+
+    const { error: deleteError } = await supabase.from('card_tags').delete().eq('name', tag.name)
+    if (deleteError) { setError(deleteError.message); return }
+
+    setAvailableTags(tags => tags.filter(t => t.name !== tag.name))
+    setSuccess(`Tag "${tag.name}" deleted.`)
+    loadCards()
+  }
+
   async function updateTagColor(tag, color) {
     const nextColor = normalizeTagColor(color)
     setAvailableTags(tags => tags.map(t => t.name === tag.name ? { ...t, color: nextColor } : t))
@@ -577,6 +590,13 @@ export default function Admin() {
                       className="h-9 w-12 rounded border border-navy/15 bg-white cursor-pointer"
                     />
                     <span className="text-xs font-mono text-navy/45 w-16">{tag.color}</span>
+                    <button
+                      onClick={() => deleteTag(tag)}
+                      className="ml-1 w-7 h-7 rounded-full bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold flex items-center justify-center transition-colors"
+                      title={`Delete "${tag.name}"`}
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
               ))}
