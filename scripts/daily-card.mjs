@@ -33,7 +33,7 @@ async function checkAlreadyGenerated() {
 async function researchNews() {
   console.log('🔍 Researching yesterday\'s finance news with Claude...')
 
-  const researchPrompt = `Yesterday was ${YESTERDAY}. Search for the single most important global finance/markets story from yesterday using Reuters, Bloomberg, FT, or WSJ. Then output ONLY this JSON (no markdown):
+  const researchPrompt = `Yesterday was ${YESTERDAY}. Search Reuters, Bloomberg, FT, or WSJ for ONE discrete, memorable event from yesterday — something specific that happened on that day (e.g. election won, minister appointed, law passed, sanctions imposed, rate decision made, company acquired, war escalation, discovery announced). Reject vague trends, market moves, or anything that "has been happening" rather than "happened yesterday". Output ONLY this JSON (no markdown):
 {"card_name":"≤15 chars","news_summary":"3-4 sentence journalist summary with historical context","mcq":[{"question":"...","answers":["A","B"],"correct":0},{"question":"...","answers":["A","B"],"correct":1},{"question":"...","answers":["A","B"],"correct":0}],"attacks":[{"title":"≤15 chars","info":"≤35 chars"},{"title":"≤15 chars","info":"≤35 chars"},{"title":"≤15 chars","info":"≤35 chars"}],"power":120,"image_description":"vivid one-paragraph card artwork scene"}
 
 MCQ rules: 3 questions, 2 choices each, one about a number, one conceptual, one specific detail. Power: 80-180 in multiples of 10.`
