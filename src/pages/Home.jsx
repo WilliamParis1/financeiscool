@@ -149,15 +149,14 @@ export default function Home() {
           <div className="flex justify-center mb-4">
             <button
               onClick={toggleAudio}
-              className={`relative inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm transition-all duration-300 ${
+              className={`relative inline-flex items-center justify-center w-12 h-12 rounded-full font-bold transition-all duration-300 ${
                 playing
-                  ? 'bg-gold text-navy-dark shadow-lg shadow-gold/40'
+                  ? 'bg-gold text-navy-dark shadow-lg'
                   : 'bg-white border-2 border-gold/60 text-gold-dark hover:border-gold hover:shadow-lg hover:shadow-gold/30'
               }`}
               style={playing ? { boxShadow: '0 0 20px rgba(201,162,75,0.5), 0 0 40px rgba(201,162,75,0.2)' } : undefined}
             >
-              <span className={`text-base ${playing ? 'animate-pulse' : ''}`}>{playing ? '▐▐' : '▶'}</span>
-              <span>{playing ? 'Playing Aura Music' : 'Play Aura Music'}</span>
+              <span className="text-lg">{playing ? '▐▐' : '▶'}</span>
               {playing && (
                 <span className="absolute inset-0 rounded-full animate-ping bg-gold/20 pointer-events-none" />
               )}
