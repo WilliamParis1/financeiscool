@@ -30,7 +30,6 @@ export default function Home() {
 
   useEffect(() => {
     if (!audioRef) return
-    audioRef.loop = true
     const handleEnd = () => setPlaying(false)
     audioRef.addEventListener('ended', handleEnd)
     return () => {
@@ -41,13 +40,9 @@ export default function Home() {
 
   function toggleAudio() {
     if (!audioRef) return
-    if (playing) {
-      audioRef.pause()
-      setPlaying(false)
-    } else {
-      audioRef.play()
-      setPlaying(true)
-    }
+    audioRef.currentTime = 0
+    audioRef.play()
+    setPlaying(true)
   }
 
   useEffect(() => {
