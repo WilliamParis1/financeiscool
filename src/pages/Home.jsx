@@ -23,8 +23,32 @@ export default function Home() {
   const [answers, setAnswers] = useState([null, null, null])
   const [submitting, setSubmitting] = useState(false)
   const [expanded, setExpanded] = useState({})
+  const [playing, setPlaying] = useState(false)
+  const audioRef = useState(() => typeof Audio !== 'undefined' ? new Audio('/auramusic.mp3') : null)[0]
 
   const TODAY = new Date().toISOString().split('T')[0]
+
+  useEffect(() => {
+    if (!audioRef) return
+    audioRef.loop = true
+    const handleEnd = () => setPlaying(false)
+    audioRef.addEventListener('ended', handleEnd)
+    return () => {
+      audioRef.removeEventListener('ended', handleEnd)
+      audioRef.pause()
+    }
+  }, [])
+
+  function toggleAudio() {
+    if (!audioRef) return
+    if (playing) {
+      audioRef.pause()
+      setPlaying(false)
+    } else {
+      audioRef.play()
+      setPlaying(true)
+    }
+  }
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -127,6 +151,23 @@ export default function Home() {
           <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-navy">
             Finance <span className="text-gold">Trading Cards</span>
           </h1>
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={toggleAudio}
+              className={`relative inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm transition-all duration-300 ${
+                playing
+                  ? 'bg-gold text-navy-dark shadow-lg shadow-gold/40'
+                  : 'bg-white border-2 border-gold/60 text-gold-dark hover:border-gold hover:shadow-lg hover:shadow-gold/30'
+              }`}
+              style={playing ? { boxShadow: '0 0 20px rgba(201,162,75,0.5), 0 0 40px rgba(201,162,75,0.2)' } : undefined}
+            >
+              <span className={`text-base ${playing ? 'animate-pulse' : ''}`}>{playing ? '▐▐' : '▶'}</span>
+              <span>{playing ? 'Playing Aura Music' : 'Play Aura Music'}</span>
+              {playing && (
+                <span className="absolute inset-0 rounded-full animate-ping bg-gold/20 pointer-events-none" />
+              )}
+            </button>
+          </div>
           <p className="text-xl text-navy/60 max-w-lg mx-auto">
             +3,000 aura for joining us, learn about finance and economics the fun way
           </p>
