@@ -119,19 +119,6 @@ export default function Home() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl w-full">
-          {[
-            { icon: 'CARD', title: 'Daily Cards', desc: 'Claim one free card every day. Common, Rare, or Legendary?' },
-            { icon: 'SET', title: 'Build Collections', desc: 'Grow your collection and show it off on your public profile.' },
-            { icon: 'SWAP', title: 'Trade & Gift', desc: 'Trade cards with friends or gift duplicates to complete your set.' },
-          ].map(({ icon, title, desc }) => (
-            <div key={title} className="bg-white rounded-xl p-6 border border-navy/10 shadow-sm hover:shadow-md hover:border-gold/40 transition-all">
-              <div className="text-xs tracking-[0.25em] text-gold-dark font-black mb-3">{icon}</div>
-              <h3 className="text-lg font-bold text-navy mb-2">{title}</h3>
-              <p className="text-navy/60 text-sm">{desc}</p>
-            </div>
-          ))}
-        </div>
       </section>
 
       <section className="max-w-6xl mx-auto pb-20">
