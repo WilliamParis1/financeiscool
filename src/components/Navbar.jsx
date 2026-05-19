@@ -33,7 +33,7 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/">
-            <img src="/logo.png" alt="Finance Trading Cards" className="h-10 w-auto" />
+            <img src="/logo19052026.png" alt="Finance Trading Cards" className="h-10 w-auto" />
           </Link>
 
           {/* Desktop nav */}
