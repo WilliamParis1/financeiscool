@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
@@ -23,28 +23,7 @@ export default function Home() {
   const [answers, setAnswers] = useState([null, null, null])
   const [submitting, setSubmitting] = useState(false)
   const [expanded, setExpanded] = useState({})
-  const [playing, setPlaying] = useState(false)
-  const audioRef = useRef(null)
-
   const TODAY = new Date().toISOString().split('T')[0]
-
-  useEffect(() => {
-    const audio = new Audio('/auramusic.mp3')
-    audioRef.current = audio
-    audio.addEventListener('ended', () => setPlaying(false))
-    return () => {
-      audio.pause()
-      audio.src = ''
-    }
-  }, [])
-
-  function toggleAudio() {
-    const audio = audioRef.current
-    if (!audio) return
-    audio.currentTime = 0
-    audio.play()
-    setPlaying(true)
-  }
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -147,22 +126,6 @@ export default function Home() {
           <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-navy">
             Finance <span className="text-gold">Trading Cards</span>
           </h1>
-          <div className="flex justify-center mb-4">
-            <button
-              onClick={toggleAudio}
-              className={`relative inline-flex items-center justify-center w-12 h-12 rounded-full font-bold transition-all duration-300 ${
-                playing
-                  ? 'bg-gold text-navy-dark shadow-lg'
-                  : 'bg-white border-2 border-gold/60 text-gold-dark hover:border-gold hover:shadow-lg hover:shadow-gold/30'
-              }`}
-              style={playing ? { boxShadow: '0 0 20px rgba(201,162,75,0.5), 0 0 40px rgba(201,162,75,0.2)' } : undefined}
-            >
-              <span className="text-lg">{playing ? '▐▐' : '▶'}</span>
-              {playing && (
-                <span className="absolute inset-0 rounded-full animate-ping bg-gold/20 pointer-events-none" />
-              )}
-            </button>
-          </div>
           <p className="text-xl text-navy/60 max-w-lg mx-auto">
             +3,000 aura for joining us, learn about finance and economics the fun way
           </p>
