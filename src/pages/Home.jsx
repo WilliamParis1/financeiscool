@@ -166,28 +166,28 @@ export default function Home() {
 
       {/* Daily cards feed */}
       {!dailyLoading && dailyCards.length > 0 && (
-        <section className="max-w-4xl mx-auto pb-24 space-y-6">
+        <section className="max-w-5xl mx-auto pb-24 space-y-6">
 
           {/* Today's latest card — full MCQ treatment */}
           {todayCard && (
             <article className="bg-white border-2 border-gold/40 rounded-2xl shadow-lg overflow-hidden">
-              <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
+              <div className="grid grid-cols-1 md:grid-cols-[260px_1fr]">
 
                 {/* Card image */}
-                <div className={`bg-mist flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-navy/10 transition-all duration-700 ${revealed && !todayAttempt.passed ? 'grayscale opacity-60' : ''}`}>
+                <div className={`bg-mist flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-navy/10 transition-all duration-700 ${revealed && !todayAttempt.passed ? 'grayscale opacity-60' : ''}`}>
                   {todayCard.cards?.image_url ? (
                     <img
                       src={todayCard.cards.image_url}
                       alt={todayCard.cards?.name}
-                      className={`w-32 aspect-[11/17] object-cover rounded-xl shadow transition-all duration-700 ${!revealed ? 'blur scale-105' : ''}`}
+                      className={`w-44 aspect-[11/17] object-cover rounded-xl shadow transition-all duration-700 ${!revealed ? 'blur scale-105' : ''}`}
                     />
                   ) : (
-                    <div className="w-32 aspect-[11/17] bg-white border border-navy/10 rounded-xl" />
+                    <div className="w-44 aspect-[11/17] bg-white border border-navy/10 rounded-xl" />
                   )}
                 </div>
 
                 {/* Content */}
-                <div className="p-6 flex flex-col gap-4">
+                <div className="p-8 flex flex-col gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="text-xs font-black uppercase tracking-[0.2em] text-gold-dark">Today · {formatDate(todayCard.date)}</span>
@@ -260,15 +260,15 @@ export default function Home() {
 
           {/* Earlier cards from today (force-generated) */}
           {extraTodayCards.map(daily => (
-            <article key={daily.id} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
-              <div className="bg-mist flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-navy/10">
+            <article key={daily.id} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[260px_1fr]">
+              <div className="bg-mist flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-navy/10">
                 {daily.cards?.image_url ? (
-                  <img src={daily.cards.image_url} alt={daily.cards.name} className="w-32 aspect-[11/17] object-cover rounded-xl shadow" />
+                  <img src={daily.cards.image_url} alt={daily.cards.name} className="w-44 aspect-[11/17] object-cover rounded-xl shadow" />
                 ) : (
-                  <div className="w-32 aspect-[11/17] bg-white border border-navy/10 rounded-xl" />
+                  <div className="w-44 aspect-[11/17] bg-white border border-navy/10 rounded-xl" />
                 )}
               </div>
-              <div className="p-6 flex flex-col justify-center">
+              <div className="p-8 flex flex-col justify-center">
                 <span className="text-xs font-black uppercase tracking-[0.2em] text-navy/40">Today (earlier) · {formatDate(daily.date)}</span>
                 <h2 className="text-xl font-extrabold text-navy mt-1 mb-3">{daily.cards?.name || '—'}</h2>
                 <p className={`text-navy/65 text-sm leading-relaxed ${!expanded[daily.id] ? 'line-clamp-3' : ''}`}>{daily.news_summary}</p>
@@ -281,15 +281,15 @@ export default function Home() {
 
           {/* Past cards */}
           {pastCards.map(daily => (
-            <article key={daily.id} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[200px_1fr]">
-              <div className="bg-mist flex items-center justify-center p-6 border-b md:border-b-0 md:border-r border-navy/10">
+            <article key={daily.id} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[260px_1fr]">
+              <div className="bg-mist flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-navy/10">
                 {daily.cards?.image_url ? (
-                  <img src={daily.cards.image_url} alt={daily.cards.name} className="w-32 aspect-[11/17] object-cover rounded-xl shadow" />
+                  <img src={daily.cards.image_url} alt={daily.cards.name} className="w-44 aspect-[11/17] object-cover rounded-xl shadow" />
                 ) : (
-                  <div className="w-32 aspect-[11/17] bg-white border border-navy/10 rounded-xl flex items-center justify-center text-navy/40 text-sm">No image</div>
+                  <div className="w-44 aspect-[11/17] bg-white border border-navy/10 rounded-xl flex items-center justify-center text-navy/40 text-sm">No image</div>
                 )}
               </div>
-              <div className="p-6 flex flex-col justify-center">
+              <div className="p-8 flex flex-col justify-center">
                 <span className="text-xs font-black uppercase tracking-[0.2em] text-navy/40">{formatDate(daily.date)}</span>
                 <h2 className="text-xl font-extrabold text-navy mt-1 mb-3">{daily.cards?.name || '—'}</h2>
                 <p className={`text-navy/65 text-sm leading-relaxed ${!expanded[daily.id] ? 'line-clamp-3' : ''}`}>{daily.news_summary}</p>
