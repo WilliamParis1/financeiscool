@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import GlowButton from '../components/GlowButton'
+import CardModal from '../components/CardModal'
 
 const SPEECH_LINES = [
   'Collect a rare card every day',
@@ -23,6 +24,7 @@ export default function Home() {
   const [answers, setAnswers] = useState([null, null, null])
   const [submitting, setSubmitting] = useState(false)
   const [expanded, setExpanded] = useState({})
+  const [selectedCard, setSelectedCard] = useState(null)
   const TODAY = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
@@ -179,7 +181,8 @@ export default function Home() {
                     <img
                       src={todayCard.cards.image_url}
                       alt={todayCard.cards?.name}
-                      className={`w-44 aspect-[11/17] object-cover rounded-xl shadow transition-all duration-700 ${!revealed ? 'blur scale-105' : ''}`}
+                      onClick={revealed ? () => setSelectedCard(todayCard.cards) : undefined}
+                      className={`w-44 aspect-[11/17] object-cover rounded-xl shadow transition-all duration-700 ${!revealed ? 'blur scale-105' : 'cursor-pointer hover:scale-105'}`}
                     />
                   ) : (
                     <div className="w-44 aspect-[11/17] bg-white border border-navy/10 rounded-xl" />
@@ -263,7 +266,7 @@ export default function Home() {
             <article key={daily.id} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[260px_1fr]">
               <div className="bg-mist flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-navy/10">
                 {daily.cards?.image_url ? (
-                  <img src={daily.cards.image_url} alt={daily.cards.name} className="w-44 aspect-[11/17] object-cover rounded-xl shadow" />
+                  <img src={daily.cards.image_url} alt={daily.cards.name} onClick={() => setSelectedCard(daily.cards)} className="w-44 aspect-[11/17] object-cover rounded-xl shadow cursor-pointer hover:scale-105 transition-transform" />
                 ) : (
                   <div className="w-44 aspect-[11/17] bg-white border border-navy/10 rounded-xl" />
                 )}
@@ -284,7 +287,7 @@ export default function Home() {
             <article key={daily.id} className="bg-white border border-navy/10 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-[260px_1fr]">
               <div className="bg-mist flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-navy/10">
                 {daily.cards?.image_url ? (
-                  <img src={daily.cards.image_url} alt={daily.cards.name} className="w-44 aspect-[11/17] object-cover rounded-xl shadow" />
+                  <img src={daily.cards.image_url} alt={daily.cards.name} onClick={() => setSelectedCard(daily.cards)} className="w-44 aspect-[11/17] object-cover rounded-xl shadow cursor-pointer hover:scale-105 transition-transform" />
                 ) : (
                   <div className="w-44 aspect-[11/17] bg-white border border-navy/10 rounded-xl flex items-center justify-center text-navy/40 text-sm">No image</div>
                 )}
@@ -302,6 +305,8 @@ export default function Home() {
 
         </section>
       )}
+
+      {selectedCard && <CardModal card={selectedCard} onClose={() => setSelectedCard(null)} />}
     </div>
   )
 }
