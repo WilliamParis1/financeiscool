@@ -6,7 +6,7 @@ const RARITY_STYLES = {
   legendary: { border: 'border-gold',     badge: 'bg-gold/20 text-gold-dark', label: 'Legendary', glow: 'shadow-[0_0_45px_rgba(201,162,75,0.5)]' },
 }
 
-export default function CardModal({ card, onClose, actions }) {
+export default function CardModal({ card, onClose, actions, imageOnly = false }) {
   if (!card) return null
   const style = RARITY_STYLES[card.rarity] || RARITY_STYLES.common
   const tags = card.tag_details || getTagDetails(card.tag_names)
@@ -31,46 +31,48 @@ export default function CardModal({ card, onClose, actions }) {
           </button>
         </div>
 
-        <div className="p-6">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <h2 className="text-xl font-bold text-navy">{card.name}</h2>
-            <span className={`text-sm px-3 py-1 rounded-full font-semibold ${style.badge}`}>
-              {style.label}
-            </span>
-          </div>
-          {card.description && (
-            <p className="text-navy/60 text-sm leading-relaxed">{card.description}</p>
-          )}
-          {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {tags.map(tag => (
-                <span
-                  key={tag.name}
-                  className="px-3 py-1 rounded-full text-xs font-bold"
-                  style={{ backgroundColor: tag.color, color: readableTextColor(tag.color) }}
-                >
-                  {tag.name}
-                </span>
-              ))}
+        {!imageOnly && (
+          <div className="p-6">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="text-xl font-bold text-navy">{card.name}</h2>
+              <span className={`text-sm px-3 py-1 rounded-full font-semibold ${style.badge}`}>
+                {style.label}
+              </span>
             </div>
-          )}
-          {dates.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-navy/40 font-bold mb-2">Dates</p>
-              <div className="flex flex-wrap gap-2">
-                {dates.map(date => (
-                  <span key={date} className="bg-mist text-navy/70 border border-navy/10 px-3 py-1 rounded-full text-xs font-semibold">
-                    {formatCardDate(date)}
+            {card.description && (
+              <p className="text-navy/60 text-sm leading-relaxed">{card.description}</p>
+            )}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {tags.map(tag => (
+                  <span
+                    key={tag.name}
+                    className="px-3 py-1 rounded-full text-xs font-bold"
+                    style={{ backgroundColor: tag.color, color: readableTextColor(tag.color) }}
+                  >
+                    {tag.name}
                   </span>
                 ))}
               </div>
-            </div>
-          )}
-          {card.quantity > 1 && (
-            <p className="text-navy/40 text-sm mt-2">You own {card.quantity} copies</p>
-          )}
-          {actions && <div className="mt-4">{actions}</div>}
-        </div>
+            )}
+            {dates.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-navy/40 font-bold mb-2">Dates</p>
+                <div className="flex flex-wrap gap-2">
+                  {dates.map(date => (
+                    <span key={date} className="bg-mist text-navy/70 border border-navy/10 px-3 py-1 rounded-full text-xs font-semibold">
+                      {formatCardDate(date)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {card.quantity > 1 && (
+              <p className="text-navy/40 text-sm mt-2">You own {card.quantity} copies</p>
+            )}
+            {actions && <div className="mt-4">{actions}</div>}
+          </div>
+        )}
       </div>
     </div>
   )

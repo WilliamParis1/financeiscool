@@ -306,7 +306,7 @@ export default function Home() {
         </section>
       )}
 
-      {selectedCard && <CardModal card={selectedCard} onClose={() => setSelectedCard(null)} />}
+      {selectedCard && <CardModal card={selectedCard} onClose={() => setSelectedCard(null)} imageOnly />}
     </div>
   )
 }
