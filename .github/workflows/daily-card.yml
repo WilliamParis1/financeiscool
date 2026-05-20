@@ -2,7 +2,7 @@ name: Daily Card Generator
 
 on:
   schedule:
-    - cron: '0 4 * * *'  # 6:00 AM Paris time (CEST = UTC+2)
+    - cron: '0 23 * * *'  # 1:00 AM Paris time (CEST = UTC+2)
   workflow_dispatch:
     inputs:
       force:
