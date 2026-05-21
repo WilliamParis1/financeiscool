@@ -4,26 +4,27 @@ import { supabase } from '../lib/supabaseClient'
 // Container size
 const W = 700
 const H = 560
-const CX = W / 2   // orbit centre x
-const CY = H / 2   // orbit centre y
+const CX = W / 2
+const CY = H / 2
 
-// Elliptical orbit params per card (rx=horizontal radius, ry=vertical radius)
-const ORBITS = [
-  { rx: 240, ry: 80,  speed: 22, phase:   0 },
-  { rx: 260, ry: 100, speed: 16, phase:  72 },
-  { rx: 230, ry: 90,  speed: 28, phase: 144 },
-  { rx: 250, ry: 70,  speed: 20, phase: 216 },
-  { rx: 245, ry: 95,  speed: 24, phase: 288 },
-]
+// Single shared orbit — all cards same shape, same speed, evenly spaced
+const RX    = 250          // horizontal radius before tilt
+const RY    = 95           // vertical radius before tilt
+const SPEED = 20           // deg/s — identical for all cards
+const TILT  = -42          // degrees — rotates orbit diagonal (top-right → bottom-left)
+const TILT_RAD = TILT * Math.PI / 180
 
-// Base card size — will scale with y position for depth illusion
-const BASE_W = 200
+// 5 cards evenly spaced at 72° apart
+const PHASES = [0, 72, 144, 216, 288]
+
+// Base card size (-10% from previous 200px)
+const BASE_W = 180
 const BASE_H = Math.round(BASE_W * 17 / 11)
 
 export default function OrbitingCards() {
   const [cards, setCards] = useState([])
   const cardRefs  = useRef([])
-  const anglesRef = useRef(ORBITS.map(o => o.phase))
+  const anglesRef = useRef([...PHASES])
   const rafRef    = useRef()
   const lastTsRef = useRef(null)
 
@@ -48,22 +49,23 @@ export default function OrbitingCards() {
       const dt = Math.min((ts - lastTsRef.current) / 1000, 0.05)
       lastTsRef.current = ts
 
-      anglesRef.current = anglesRef.current.map((a, i) =>
-        (a + ORBITS[i].speed * dt) % 360
-      )
+      anglesRef.current = anglesRef.current.map(a => (a + SPEED * dt) % 360)
 
       anglesRef.current.forEach((angleDeg, i) => {
         const el = cardRefs.current[i]
         if (!el) return
-        const a = (angleDeg * Math.PI) / 180
-        const { rx, ry } = ORBITS[i]
 
-        const ox = rx * Math.cos(a)          // position on orbit
-        const oy = ry * Math.sin(a)
+        const a   = (angleDeg * Math.PI) / 180
+        const bx  = RX * Math.cos(a)
+        const by  = RY * Math.sin(a)
 
-        // Cards at the bottom of the orbit (oy > 0) are "in front" → bigger
-        const depth = (oy + ry) / (2 * ry)  // 0 = back, 1 = front
-        const scale = 0.75 + depth * 0.5    // 0.75 (back) → 1.25 (front)
+        // Rotate the ellipse to be diagonal (top-right → bottom-left)
+        const ox  = bx * Math.cos(TILT_RAD) - by * Math.sin(TILT_RAD)
+        const oy  = bx * Math.sin(TILT_RAD) + by * Math.cos(TILT_RAD)
+
+        // Depth based on pre-tilt y (bottom = front, top = back)
+        const depth = (by + RY) / (2 * RY)          // 0 = back, 1 = front
+        const scale = 0.75 + depth * 0.45            // 0.75 → 1.2
 
         const cw = Math.round(BASE_W * scale)
         const ch = Math.round(BASE_H * scale)
@@ -101,15 +103,15 @@ export default function OrbitingCards() {
 
       {/* Cards */}
       {cards.map((card, i) => {
-        // Initial position for first paint
-        const a0 = (ORBITS[i].phase * Math.PI) / 180
-        const { rx, ry } = ORBITS[i]
-        const ox0 = rx * Math.cos(a0)
-        const oy0 = ry * Math.sin(a0)
-        const depth0 = (oy0 + ry) / (2 * ry)
-        const scale0 = 0.75 + depth0 * 0.5
-        const cw0 = Math.round(BASE_W * scale0)
-        const ch0 = Math.round(BASE_H * scale0)
+        const a0    = (PHASES[i] * Math.PI) / 180
+        const bx0   = RX * Math.cos(a0)
+        const by0   = RY * Math.sin(a0)
+        const ox0   = bx0 * Math.cos(TILT_RAD) - by0 * Math.sin(TILT_RAD)
+        const oy0   = bx0 * Math.sin(TILT_RAD) + by0 * Math.cos(TILT_RAD)
+        const d0    = (by0 + RY) / (2 * RY)
+        const s0    = 0.75 + d0 * 0.45
+        const cw0   = Math.round(BASE_W * s0)
+        const ch0   = Math.round(BASE_H * s0)
 
         return (
           <div
@@ -117,12 +119,12 @@ export default function OrbitingCards() {
             ref={el => (cardRefs.current[i] = el)}
             style={{
               position: 'absolute',
-              left: `${Math.round(CX + ox0 - cw0 / 2)}px`,
-              top:  `${Math.round(CY + oy0 - ch0 / 2)}px`,
-              width:  `${cw0}px`,
-              height: `${ch0}px`,
-              zIndex: Math.round(depth0 * 100),
-              opacity: 0.7 + depth0 * 0.3,
+              left:    `${Math.round(CX + ox0 - cw0 / 2)}px`,
+              top:     `${Math.round(CY + oy0 - ch0 / 2)}px`,
+              width:   `${cw0}px`,
+              height:  `${ch0}px`,
+              zIndex:  Math.round(d0 * 100),
+              opacity: 0.7 + d0 * 0.3,
               borderRadius: '12px',
               overflow: 'hidden',
               boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
@@ -137,7 +139,7 @@ export default function OrbitingCards() {
                 height: '100%',
                 objectFit: 'cover',
                 display: 'block',
-                filter: 'blur(1.5px)',
+                filter: 'blur(2px)',
               }}
             />
           </div>
