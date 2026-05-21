@@ -3,11 +3,11 @@ import { supabase } from '../lib/supabaseClient'
 
 // Each orbit has its own plane defined by tilt (around X) and twist (around Y)
 const ORBIT_PARAMS = [
-  { speed: 28, radius: 160, tilt: 20, twist:   0, phase:   0 },
-  { speed: 20, radius: 175, tilt: 45, twist:  30, phase:  72 },
-  { speed: 34, radius: 155, tilt: 60, twist: -20, phase: 144 },
-  { speed: 24, radius: 170, tilt: 35, twist:  60, phase: 216 },
-  { speed: 30, radius: 165, tilt: 55, twist: -45, phase: 288 },
+  { speed: 28, radius: 210, tilt: 15, twist:   0, phase:   0 },
+  { speed: 20, radius: 230, tilt: 38, twist:  30, phase:  72 },
+  { speed: 34, radius: 205, tilt: 50, twist: -20, phase: 144 },
+  { speed: 24, radius: 225, tilt: 28, twist:  60, phase: 216 },
+  { speed: 30, radius: 218, tilt: 44, twist: -45, phase: 288 },
 ]
 
 function computePos({ radius, tilt, twist }, angleDeg) {
@@ -79,10 +79,10 @@ export default function OrbitingCards() {
   return (
     <div
       style={{
-        perspective: '700px',
+        perspective: '900px',
         width: '100%',
-        maxWidth: '480px',
-        height: '360px',
+        maxWidth: '580px',
+        height: '480px',
         position: 'relative',
         margin: '0 auto',
       }}
@@ -128,13 +128,14 @@ export default function OrbitingCards() {
                 src={card.image_url}
                 alt={card.name}
                 style={{
-                  width: '58px',
+                  width: '95px',
                   aspectRatio: '11/17',
                   objectFit: 'cover',
-                  borderRadius: '7px',
-                  boxShadow: '0 6px 22px rgba(0,0,0,0.5)',
+                  borderRadius: '9px',
+                  boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
                   border: '1.5px solid rgba(201,162,75,0.45)',
                   display: 'block',
+                  filter: 'blur(2px)',
                 }}
               />
             </div>
