@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-// Container size
-const W = 700
-const H = 560
+// Container size (÷3 for mobile fit)
+const W = 234
+const H = 188
 const CX = W / 2
 const CY = H / 2
 
 // Single shared orbit — all cards same shape, same speed, evenly spaced
-const RX    = 250          // horizontal radius before tilt
-const RY    = 95           // vertical radius before tilt
+const RX    = 83           // horizontal radius before tilt
+const RY    = 32           // vertical radius before tilt
 const SPEED = 20           // deg/s — identical for all cards
 const TILT  = -15          // degrees — 15° from horizontal (top-right → bottom-left)
 const TILT_RAD = TILT * Math.PI / 180
@@ -17,8 +17,8 @@ const TILT_RAD = TILT * Math.PI / 180
 // 5 cards evenly spaced at 72° apart
 const PHASES = [0, 72, 144, 216, 288]
 
-// Base card size (-10% from previous 200px)
-const BASE_W = 144   // 180 * 0.8 (-20%)
+// Base card size (÷3)
+const BASE_W = 48
 const BASE_H = Math.round(BASE_W * 17 / 11)
 
 export default function OrbitingCards() {
@@ -94,10 +94,10 @@ export default function OrbitingCards() {
         alt="planet"
         style={{
           position: 'absolute',
-          left: `${CX - 44}px`,
-          top:  `${CY - 44}px`,
-          width: '88px',
-          height: '88px',
+          left: `${CX - 15}px`,
+          top:  `${CY - 15}px`,
+          width: '29px',
+          height: '29px',
           zIndex: 50,
           filter: 'drop-shadow(0 0 12px rgba(59,130,246,0.9)) drop-shadow(0 0 28px rgba(59,130,246,0.55)) drop-shadow(0 0 50px rgba(59,130,246,0.25))',
         }}
