@@ -90,8 +90,8 @@ export default function OrbitingCards() {
 
       {/* Planet */}
       <img
-        src="/sphere.png"
-        alt="planet"
+        src="/jeromepowellmeditating.png"
+        alt="Jerome Powell"
         className="sphere-glow"
         style={{
           position: 'absolute',
