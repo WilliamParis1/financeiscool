@@ -11,7 +11,7 @@ const CY = H / 2
 const RX    = 250          // horizontal radius before tilt
 const RY    = 95           // vertical radius before tilt
 const SPEED = 20           // deg/s — identical for all cards
-const TILT  = -42          // degrees — rotates orbit diagonal (top-right → bottom-left)
+const TILT  = -30          // degrees — 30° from horizontal (top-right → bottom-left)
 const TILT_RAD = TILT * Math.PI / 180
 
 // 5 cards evenly spaced at 72° apart
