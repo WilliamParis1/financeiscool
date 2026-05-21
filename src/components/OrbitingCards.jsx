@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-// Each orbit has its own plane defined by tilt (around X) and twist (around Y)
 const ORBIT_PARAMS = [
-  { speed: 22, radius: 310, tilt: 15, twist:   0, phase:   0 },
-  { speed: 16, radius: 340, tilt: 36, twist:  30, phase:  72 },
-  { speed: 26, radius: 300, tilt: 48, twist: -20, phase: 144 },
-  { speed: 18, radius: 330, tilt: 26, twist:  60, phase: 216 },
-  { speed: 22, radius: 320, tilt: 42, twist: -45, phase: 288 },
+  { speed: 22, radius: 280, tilt: 15, twist:   0, phase:   0 },
+  { speed: 16, radius: 300, tilt: 36, twist:  30, phase:  72 },
+  { speed: 26, radius: 270, tilt: 48, twist: -20, phase: 144 },
+  { speed: 18, radius: 290, tilt: 26, twist:  60, phase: 216 },
+  { speed: 22, radius: 285, tilt: 42, twist: -45, phase: 288 },
 ]
+
+const FOCAL  = 900   // perspective focal length — higher = less distortion
+const CARD_W = 180   // base card width in px
 
 function computePos({ radius, tilt, twist }, angleDeg) {
   const theta = (angleDeg * Math.PI) / 180
   const ti    = (tilt  * Math.PI) / 180
   const tw    = (twist * Math.PI) / 180
-  // Start in XZ plane, tilt around X, then twist around Y
   const bx = radius * Math.cos(theta)
   const bz = radius * Math.sin(theta)
   const x1 =  bx
@@ -25,6 +26,12 @@ function computePos({ radius, tilt, twist }, angleDeg) {
     y:  y1,
     z: -x1 * Math.sin(tw) + z1 * Math.cos(tw),
   }
+}
+
+// Manual perspective projection — no CSS preserve-3d needed
+function project({ x, y, z }) {
+  const scale = FOCAL / (FOCAL + z + 300)
+  return { px: x * scale, py: y * scale, scale }
 }
 
 export default function OrbitingCards() {
@@ -60,13 +67,19 @@ export default function OrbitingCards() {
         (a + ORBIT_PARAMS[i].speed * dt) % 360
       )
 
-      anglesRef.current.forEach((angle, i) => {
+      // Compute all positions then sort back-to-front for z-index
+      const positions = anglesRef.current.map((angle, i) => {
+        const pos3d = computePos(ORBIT_PARAMS[i], angle)
+        const { px, py, scale } = project(pos3d)
+        const wobble = Math.sin((angle * Math.PI) / 180) * 12
+        return { i, px, py, scale, z: pos3d.z, wobble }
+      })
+
+      positions.forEach(({ i, px, py, scale, z, wobble }) => {
         const el = cardRefs.current[i]
         if (!el) return
-        const { x, y, z } = computePos(ORBIT_PARAMS[i], angle)
-        // Slight Y-tilt as card travels around — gives a tumbling-in-space feel
-        const wobble = Math.sin((angle * Math.PI) / 180) * 15
-        el.style.transform = `translate3d(${x}px,${y}px,${z}px) translate(-50%,-50%) rotateY(${wobble}deg)`
+        el.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px)) scale(${scale}) rotateY(${wobble}deg)`
+        el.style.zIndex    = String(Math.round(z + 500))
       })
 
       rafRef.current = requestAnimationFrame(tick)
@@ -76,66 +89,64 @@ export default function OrbitingCards() {
     return () => cancelAnimationFrame(rafRef.current)
   }, [cards])
 
+  const initPositions = ORBIT_PARAMS.map((p, i) => {
+    const pos3d = computePos(p, p.phase)
+    const { px, py, scale } = project(pos3d)
+    return { px, py, scale, z: pos3d.z }
+  })
+
   return (
     <div
       style={{
-        perspective: '1200px',
         width: '100%',
-        maxWidth: '820px',
-        height: '700px',
+        maxWidth: '760px',
+        height: '640px',
         position: 'relative',
         margin: '0 auto',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%,-50%)',
-          transformStyle: 'preserve-3d',
-          width: 0,
-          height: 0,
-        }}
-      >
+      {/* Centre anchor */}
+      <div style={{ position: 'absolute', top: '50%', left: '50%', width: 0, height: 0 }}>
+
         {/* Planet */}
-        <div
-          style={{
-            position: 'absolute',
-            width: '72px',
-            height: '72px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle at 38% 32%, #2855a0, #0a1f44)',
-            boxShadow:
-              '0 0 28px rgba(201,162,75,0.65), 0 0 60px rgba(201,162,75,0.22), inset 0 -8px 20px rgba(0,0,0,0.45)',
-            transform: 'translate(-50%,-50%)',
-          }}
-        />
+        <div style={{
+          position: 'absolute',
+          width: '80px',
+          height: '80px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 38% 32%, #2855a0, #0a1f44)',
+          boxShadow: '0 0 30px rgba(201,162,75,0.65), 0 0 70px rgba(201,162,75,0.22), inset 0 -8px 20px rgba(0,0,0,0.45)',
+          transform: 'translate(-50%,-50%)',
+          zIndex: 250,
+        }} />
 
         {/* Orbiting cards */}
         {cards.map((card, i) => {
-          const init = computePos(ORBIT_PARAMS[i], ORBIT_PARAMS[i].phase)
+          const { px, py, scale, z } = initPositions[i]
           return (
             <div
               key={card.id}
               ref={el => (cardRefs.current[i] = el)}
               style={{
                 position: 'absolute',
-                transform: `translate3d(${init.x}px,${init.y}px,${init.z}px) translate(-50%,-50%)`,
+                top: 0,
+                left: 0,
+                transform: `translate(calc(-50% + ${px}px), calc(-50% + ${py}px)) scale(${scale})`,
+                zIndex: Math.round(z + 500),
               }}
             >
               <img
                 src={card.image_url}
                 alt={card.name}
                 style={{
-                  width: '200px',
+                  width: `${CARD_W}px`,
                   aspectRatio: '11/17',
                   objectFit: 'cover',
-                  borderRadius: '14px',
-                  boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 36px rgba(0,0,0,0.55)',
                   border: '2px solid rgba(201,162,75,0.5)',
                   display: 'block',
-                  filter: 'blur(2px)',
+                  filter: 'blur(1.5px)',
                 }}
               />
             </div>
