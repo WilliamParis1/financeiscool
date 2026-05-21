@@ -89,17 +89,18 @@ export default function OrbitingCards() {
     <div style={{ width: `${W}px`, maxWidth: '100%', height: `${H}px`, position: 'relative', margin: '0 auto' }}>
 
       {/* Planet */}
-      <div style={{
-        position: 'absolute',
-        left: `${CX - 44}px`,
-        top:  `${CY - 44}px`,
-        width: '88px',
-        height: '88px',
-        borderRadius: '50%',
-        background: 'radial-gradient(circle at 38% 32%, #2855a0, #0a1f44)',
-        boxShadow: '0 0 30px rgba(201,162,75,0.65), 0 0 70px rgba(201,162,75,0.22), inset 0 -8px 20px rgba(0,0,0,0.45)',
-        zIndex: 50,
-      }} />
+      <img
+        src="/sphere.png"
+        alt="planet"
+        style={{
+          position: 'absolute',
+          left: `${CX - 44}px`,
+          top:  `${CY - 44}px`,
+          width: '88px',
+          height: '88px',
+          zIndex: 50,
+        }}
+      />
 
       {/* Cards */}
       {cards.map((card, i) => {
