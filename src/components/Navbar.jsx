@@ -26,7 +26,7 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const linkClass = 'text-navy/70 hover:text-gold transition-colors font-medium'
+  const linkClass = 'text-navy/70 hover:text-gold border border-navy/15 hover:border-gold/50 rounded-lg px-3 py-1.5 font-medium transition-all duration-200 hover:shadow-[0_0_10px_rgba(201,162,75,0.35)]'
 
   return (
     <nav className="bg-white border-b border-navy/10 sticky top-0 z-40 shadow-sm">
@@ -37,15 +37,15 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-3">
             <Link to="/" className={linkClass}>Home</Link>
-            <Link to="/explore" className={linkClass}>💰 Explore</Link>
-            <Link to="/daily" className={linkClass}>🎴 Daily Draw</Link>
-            <Link to="/collection" className={linkClass}>👜 Collection</Link>
-            <Link to="/leaderboard" className={linkClass}>🏆 Leaderboard</Link>
-            <Link to="/trade" className={linkClass}>🔄 Trades</Link>
+            <Link to="/explore" className={linkClass}>Explore</Link>
+            <Link to="/daily" className={linkClass}>Daily Draw</Link>
+            <Link to="/collection" className={linkClass}>Collection</Link>
+            <Link to="/leaderboard" className={linkClass}>Leaderboard</Link>
+            <Link to="/trade" className={linkClass}>Trades</Link>
             {profile?.is_admin && (
-              <Link to="/admin" className="text-gold hover:text-gold-dark transition-colors font-semibold">Admin</Link>
+              <Link to="/admin" className="text-gold hover:text-gold-dark border border-gold/40 hover:border-gold rounded-lg px-3 py-1.5 font-semibold transition-all duration-200 hover:shadow-[0_0_10px_rgba(201,162,75,0.45)]">Admin</Link>
             )}
           </div>
 
@@ -125,15 +125,15 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden py-4 flex flex-col gap-4 border-t border-navy/10">
+          <div className="md:hidden py-4 flex flex-col gap-3 border-t border-navy/10">
             <Link to="/" className={linkClass} onClick={() => setMenuOpen(false)}>Home</Link>
-            <Link to="/explore" className={linkClass} onClick={() => setMenuOpen(false)}>💰 Explore</Link>
-            <Link to="/daily" className={linkClass} onClick={() => setMenuOpen(false)}>🎴 Daily Draw</Link>
-            <Link to="/collection" className={linkClass} onClick={() => setMenuOpen(false)}>👜 Collection</Link>
-            <Link to="/leaderboard" className={linkClass} onClick={() => setMenuOpen(false)}>🏆 Leaderboard</Link>
-            <Link to="/trade" className={linkClass} onClick={() => setMenuOpen(false)}>🔄 Trades</Link>
+            <Link to="/explore" className={linkClass} onClick={() => setMenuOpen(false)}>Explore</Link>
+            <Link to="/daily" className={linkClass} onClick={() => setMenuOpen(false)}>Daily Draw</Link>
+            <Link to="/collection" className={linkClass} onClick={() => setMenuOpen(false)}>Collection</Link>
+            <Link to="/leaderboard" className={linkClass} onClick={() => setMenuOpen(false)}>Leaderboard</Link>
+            <Link to="/trade" className={linkClass} onClick={() => setMenuOpen(false)}>Trades</Link>
             {profile?.is_admin && (
-              <Link to="/admin" className="text-gold font-semibold" onClick={() => setMenuOpen(false)}>Admin</Link>
+              <Link to="/admin" className="text-gold hover:text-gold-dark border border-gold/40 hover:border-gold rounded-lg px-3 py-1.5 font-semibold transition-all duration-200 hover:shadow-[0_0_10px_rgba(201,162,75,0.45)]" onClick={() => setMenuOpen(false)}>Admin</Link>
             )}
             {user ? (
               <>
