@@ -160,9 +160,30 @@ export default function Home() {
                   ? <span key={i}>&nbsp;</span>
                   : <span
                       key={i}
-                      className={`inline-block ${item.gold ? 'text-gold' : ''} ${flippingIndex === i ? 'letter-flip' : ''}`}
+                      className={`inline-block relative ${item.gold ? 'text-gold' : ''}`}
                     >
                       {item.char}
+                      {flippingIndex === i && (
+                        <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 20, pointerEvents: 'none', display: 'inline-block' }}>
+                          <span
+                            className="letter-card-cover"
+                            style={{
+                              position: 'relative',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '0.78em',
+                              height: '1.2em',
+                              background: 'linear-gradient(135deg, #1a3a7a, #0a1f44)',
+                              border: '1.5px solid rgba(201,162,75,0.75)',
+                              borderRadius: '3px',
+                              boxShadow: '0 0 14px rgba(201,162,75,0.45)',
+                            }}
+                          >
+                            <span style={{ position: 'relative', zIndex: 1, fontSize: '0.45em', color: 'rgba(201,162,75,0.95)' }}>✦</span>
+                          </span>
+                        </span>
+                      )}
                     </span>
               )}
             </h1>

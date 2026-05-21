@@ -70,14 +70,25 @@ html, body {
   100% { transform: perspective(900px) rotateY(0deg)  scale(1);    opacity: 1; }
 }
 
-/* ---------- Title letter flip ---------- */
-.letter-flip {
-  animation: letter-flip 1s cubic-bezier(.5,.05,.5,.95);
+/* ---------- Title letter mystery card overlay ---------- */
+.letter-card-cover {
+  animation: letter-card-spin 1s cubic-bezier(.5,.05,.5,.95) both;
+  overflow: hidden;
 }
-@keyframes letter-flip {
-  0%   { transform: perspective(200px) rotateY(0deg)   scale(1);    }
-  50%  { transform: perspective(200px) rotateY(180deg) scale(1.25); }
-  100% { transform: perspective(200px) rotateY(360deg) scale(1);    }
+.letter-card-cover::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(from 0deg,
+    transparent 0deg, rgba(201,162,75,0.4) 60deg,
+    transparent 120deg, transparent 240deg,
+    rgba(10,31,68,0.4) 300deg, transparent 360deg);
+  animation: aura-spin 4s linear infinite;
+}
+@keyframes letter-card-spin {
+  0%   { transform: perspective(150px) rotateY(0deg)   scale(1);    }
+  50%  { transform: perspective(150px) rotateY(180deg) scale(1.2);  }
+  100% { transform: perspective(150px) rotateY(360deg) scale(1);    }
 }
 
 /* Full-screen flash on reveal */
