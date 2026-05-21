@@ -11,14 +11,14 @@ const CY = H / 2
 const RX    = 250          // horizontal radius before tilt
 const RY    = 95           // vertical radius before tilt
 const SPEED = 20           // deg/s — identical for all cards
-const TILT  = -30          // degrees — 30° from horizontal (top-right → bottom-left)
+const TILT  = -15          // degrees — 15° from horizontal (top-right → bottom-left)
 const TILT_RAD = TILT * Math.PI / 180
 
 // 5 cards evenly spaced at 72° apart
 const PHASES = [0, 72, 144, 216, 288]
 
 // Base card size (-10% from previous 200px)
-const BASE_W = 180
+const BASE_W = 144   // 180 * 0.8 (-20%)
 const BASE_H = Math.round(BASE_W * 17 / 11)
 
 export default function OrbitingCards() {
