@@ -2,15 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 const ORBIT_PARAMS = [
-  { speed: 22, radius: 280, tilt: 15, twist:   0, phase:   0 },
-  { speed: 16, radius: 300, tilt: 36, twist:  30, phase:  72 },
-  { speed: 26, radius: 270, tilt: 48, twist: -20, phase: 144 },
-  { speed: 18, radius: 290, tilt: 26, twist:  60, phase: 216 },
-  { speed: 22, radius: 285, tilt: 42, twist: -45, phase: 288 },
+  { speed: 24, radius: 220, tilt: 12, twist:   0, phase:   0 },
+  { speed: 17, radius: 240, tilt: 25, twist:  30, phase:  72 },
+  { speed: 28, radius: 210, tilt: 30, twist: -20, phase: 144 },
+  { speed: 20, radius: 230, tilt: 18, twist:  60, phase: 216 },
+  { speed: 24, radius: 225, tilt: 22, twist: -45, phase: 288 },
 ]
 
-const FOCAL  = 900   // perspective focal length — higher = less distortion
-const CARD_W = 180   // base card width in px
+const FOCAL  = 1400  // higher = subtler perspective distortion
+const CARD_W = 220   // base card width in px
+const CARD_H = Math.round(CARD_W * 17 / 11) // aspect ratio 11:17
 
 function computePos({ radius, tilt, twist }, angleDeg) {
   const theta = (angleDeg * Math.PI) / 180
@@ -28,9 +29,9 @@ function computePos({ radius, tilt, twist }, angleDeg) {
   }
 }
 
-// Manual perspective projection — no CSS preserve-3d needed
+// No +offset — cards render at their true size at z=0
 function project({ x, y, z }) {
-  const scale = FOCAL / (FOCAL + z + 300)
+  const scale = FOCAL / (FOCAL + z)
   return { px: x * scale, py: y * scale, scale }
 }
 
@@ -67,19 +68,17 @@ export default function OrbitingCards() {
         (a + ORBIT_PARAMS[i].speed * dt) % 360
       )
 
-      // Compute all positions then sort back-to-front for z-index
-      const positions = anglesRef.current.map((angle, i) => {
-        const pos3d = computePos(ORBIT_PARAMS[i], angle)
-        const { px, py, scale } = project(pos3d)
-        const wobble = Math.sin((angle * Math.PI) / 180) * 12
-        return { i, px, py, scale, z: pos3d.z, wobble }
-      })
-
-      positions.forEach(({ i, px, py, scale, z, wobble }) => {
+      anglesRef.current.forEach((angle, i) => {
         const el = cardRefs.current[i]
         if (!el) return
-        el.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px)) scale(${scale}) rotateY(${wobble}deg)`
-        el.style.zIndex    = String(Math.round(z + 500))
+        const pos3d = computePos(ORBIT_PARAMS[i], angle)
+        const { px, py, scale } = project(pos3d)
+        const wobble = Math.sin((angle * Math.PI) / 180) * 10
+        // Center card at (px, py) relative to the container centre
+        const tx = px - CARD_W / 2
+        const ty = py - CARD_H / 2
+        el.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`
+        el.style.zIndex     = String(Math.round(pos3d.z + 500))
       })
 
       rafRef.current = requestAnimationFrame(tick)
@@ -89,24 +88,25 @@ export default function OrbitingCards() {
     return () => cancelAnimationFrame(rafRef.current)
   }, [cards])
 
-  const initPositions = ORBIT_PARAMS.map((p, i) => {
+  // Initial positions for SSR / first paint
+  const initPositions = ORBIT_PARAMS.map(p => {
     const pos3d = computePos(p, p.phase)
     const { px, py, scale } = project(pos3d)
-    return { px, py, scale, z: pos3d.z }
+    return { tx: px - CARD_W / 2, ty: py - CARD_H / 2, scale, z: pos3d.z }
   })
 
   return (
     <div
       style={{
         width: '100%',
-        maxWidth: '760px',
-        height: '640px',
+        maxWidth: '720px',
+        height: '580px',
         position: 'relative',
         margin: '0 auto',
       }}
     >
-      {/* Centre anchor */}
-      <div style={{ position: 'absolute', top: '50%', left: '50%', width: 0, height: 0 }}>
+      {/* All cards and planet are positioned relative to the visual centre */}
+      <div style={{ position: 'absolute', top: '50%', left: '50%' }}>
 
         {/* Planet */}
         <div style={{
@@ -116,13 +116,13 @@ export default function OrbitingCards() {
           borderRadius: '50%',
           background: 'radial-gradient(circle at 38% 32%, #2855a0, #0a1f44)',
           boxShadow: '0 0 30px rgba(201,162,75,0.65), 0 0 70px rgba(201,162,75,0.22), inset 0 -8px 20px rgba(0,0,0,0.45)',
-          transform: 'translate(-50%,-50%)',
+          transform: 'translate(-50%, -50%)',
           zIndex: 250,
         }} />
 
         {/* Orbiting cards */}
         {cards.map((card, i) => {
-          const { px, py, scale, z } = initPositions[i]
+          const { tx, ty, scale, z } = initPositions[i]
           return (
             <div
               key={card.id}
@@ -131,16 +131,19 @@ export default function OrbitingCards() {
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                transform: `translate(calc(-50% + ${px}px), calc(-50% + ${py}px)) scale(${scale})`,
+                width: `${CARD_W}px`,
+                height: `${CARD_H}px`,
+                transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
                 zIndex: Math.round(z + 500),
+                transformOrigin: 'center center',
               }}
             >
               <img
                 src={card.image_url}
                 alt={card.name}
                 style={{
-                  width: `${CARD_W}px`,
-                  aspectRatio: '11/17',
+                  width: '100%',
+                  height: '100%',
                   objectFit: 'cover',
                   borderRadius: '12px',
                   boxShadow: '0 10px 36px rgba(0,0,0,0.55)',
