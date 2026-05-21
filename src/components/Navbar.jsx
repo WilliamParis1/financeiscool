@@ -5,7 +5,6 @@ import { useState, useRef, useEffect } from 'react'
 export default function Navbar() {
   const { user, profile, signOut } = useAuth()
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
   const dropdownRef = useRef(null)
 
@@ -36,18 +35,6 @@ export default function Navbar() {
             <img src="/logo19052026.png" alt="Finance Trading Cards" className="h-10 w-auto" />
           </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link to="/" className={linkClass}>Home</Link>
-            <Link to="/explore" className={linkClass}>Explore</Link>
-            <Link to="/daily" className={linkClass}>Daily Draw</Link>
-            <Link to="/collection" className={linkClass}>Collection</Link>
-            <Link to="/leaderboard" className={linkClass}>Leaderboard</Link>
-            <Link to="/trade" className={linkClass}>Trades</Link>
-            {profile?.is_admin && (
-              <Link to="/admin" className="text-gold hover:text-gold-dark border border-gold/40 hover:border-gold rounded-lg px-3 py-1.5 font-semibold transition-all duration-200 hover:shadow-[0_0_10px_rgba(201,162,75,0.45)]">Admin</Link>
-            )}
-          </div>
 
           {/* Desktop right side */}
           <div className="hidden md:flex items-center gap-3">
@@ -114,45 +101,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <button className="md:hidden text-navy p-1" onClick={() => setMenuOpen(!menuOpen)}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
-            </svg>
-          </button>
         </div>
-
-        {/* Mobile menu */}
-        {menuOpen && (
-          <div className="md:hidden py-4 flex flex-col gap-3 border-t border-navy/10">
-            <Link to="/" className={linkClass} onClick={() => setMenuOpen(false)}>Home</Link>
-            <Link to="/explore" className={linkClass} onClick={() => setMenuOpen(false)}>Explore</Link>
-            <Link to="/daily" className={linkClass} onClick={() => setMenuOpen(false)}>Daily Draw</Link>
-            <Link to="/collection" className={linkClass} onClick={() => setMenuOpen(false)}>Collection</Link>
-            <Link to="/leaderboard" className={linkClass} onClick={() => setMenuOpen(false)}>Leaderboard</Link>
-            <Link to="/trade" className={linkClass} onClick={() => setMenuOpen(false)}>Trades</Link>
-            {profile?.is_admin && (
-              <Link to="/admin" className="text-gold hover:text-gold-dark border border-gold/40 hover:border-gold rounded-lg px-3 py-1.5 font-semibold transition-all duration-200 hover:shadow-[0_0_10px_rgba(201,162,75,0.45)]" onClick={() => setMenuOpen(false)}>Admin</Link>
-            )}
-            {user ? (
-              <>
-                <div className="text-navy/50 text-sm">
-                  ID: <span className="text-navy font-bold">{profile?.username}</span>
-                </div>
-                <Link to={`/profile/${profile?.username}`} className="text-navy font-semibold" onClick={() => setMenuOpen(false)}>
-                  My Profile
-                </Link>
-                <button onClick={handleSignOut} className="text-left text-red-600 hover:text-red-700 text-sm">Sign Out</button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className={linkClass} onClick={() => setMenuOpen(false)}>Login</Link>
-                <Link to="/register" className="text-gold font-bold" onClick={() => setMenuOpen(false)}>Sign Up</Link>
-              </>
-            )}
-          </div>
-        )}
       </div>
     </nav>
   )
