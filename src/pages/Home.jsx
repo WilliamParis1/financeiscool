@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import GlowButton from '../components/GlowButton'
 import CardModal from '../components/CardModal'
+import OrbitingCards from '../components/OrbitingCards'
 
 export default function Home() {
   const { user } = useAuth()
@@ -134,6 +135,8 @@ export default function Home() {
           </p>
         </div>
 
+        <OrbitingCards />
+
         <div className="flex flex-wrap gap-4 justify-center mb-16">
           {user ? (
             <Link to="/daily">
@@ -155,6 +158,11 @@ export default function Home() {
       {/* Daily cards feed */}
       {!dailyLoading && dailyCards.length > 0 && (
         <section className="max-w-5xl mx-auto pb-24 space-y-6">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="flex-1 h-px bg-navy/10" />
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-gold-dark">Card of the Day</h2>
+            <div className="flex-1 h-px bg-navy/10" />
+          </div>
 
           {/* Today's latest card — full MCQ treatment */}
           {todayCard && (
