@@ -15,7 +15,7 @@ export default function Sidebar() {
   return (
     <>
       {/* ── Desktop sidebar (left strip) ── */}
-      <aside className="hidden md:flex flex-col items-center gap-4 fixed left-0 top-16 h-[calc(100vh-4rem)] w-16 bg-white border-r border-navy/10 py-6 z-30">
+      <aside className="hidden md:flex flex-col items-center gap-4 fixed right-0 top-16 h-[calc(100vh-4rem)] w-16 bg-white border-l border-navy/10 py-6 z-30">
         {NAV_ITEMS.map(({ to, icon, label }) => (
           <NavLink
             key={to}
@@ -30,7 +30,7 @@ export default function Sidebar() {
           >
             <img src={icon} alt={label} className="w-6 h-6 object-contain" />
             {/* Tooltip */}
-            <span className="pointer-events-none absolute left-14 whitespace-nowrap bg-navy text-white text-xs font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+            <span className="pointer-events-none absolute right-14 whitespace-nowrap bg-navy text-white text-xs font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
               {label}
             </span>
           </NavLink>
@@ -48,7 +48,7 @@ export default function Sidebar() {
             }
           >
             <span className="text-gold font-extrabold text-xs">ADM</span>
-            <span className="pointer-events-none absolute left-14 whitespace-nowrap bg-navy text-white text-xs font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+            <span className="pointer-events-none absolute right-14 whitespace-nowrap bg-navy text-white text-xs font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
               Admin
             </span>
           </NavLink>

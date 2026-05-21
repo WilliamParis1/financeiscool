@@ -21,7 +21,7 @@ export default function App() {
         <div className="min-h-screen bg-white text-navy">
           <Navbar />
           <Sidebar />
-          <main className="container mx-auto px-4 py-8 md:pl-20 pb-24 md:pb-8">
+          <main className="container mx-auto px-4 py-8 md:pr-20 pb-24 md:pb-8">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
