@@ -6,9 +6,20 @@ import GlowButton from '../components/GlowButton'
 import CardModal from '../components/CardModal'
 import OrbitingCards from '../components/OrbitingCards'
 
+// "Finance " = not gold, "Trading Cards" = gold
+const TITLE_CHARS = [
+  ...'Finance '.split('').map(c => ({ char: c, gold: false })),
+  ...'Trading Cards'.split('').map(c => ({ char: c, gold: true })),
+]
+const FLIPPABLE = TITLE_CHARS.reduce((acc, c, i) => {
+  if (c.char !== ' ') acc.push(i)
+  return acc
+}, [])
+
 export default function Home() {
   const { user } = useAuth()
   const [titleRevealed, setTitleRevealed] = useState(false)
+  const [flippingIndex, setFlippingIndex] = useState(null)
   const [dailyCards, setDailyCards] = useState([])
   const [dailyLoading, setDailyLoading] = useState(true)
   const [todayAttempt, setTodayAttempt] = useState(null)
@@ -22,6 +33,23 @@ export default function Home() {
   useEffect(() => {
     const t = setTimeout(() => setTitleRevealed(true), 120)
     return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    let flipId, clearId
+    function schedule() {
+      const delay = 5000 + Math.random() * 5000   // 5–10 s
+      flipId = setTimeout(() => {
+        const idx = FLIPPABLE[Math.floor(Math.random() * FLIPPABLE.length)]
+        setFlippingIndex(idx)
+        clearId = setTimeout(() => {
+          setFlippingIndex(null)
+          schedule()
+        }, 1100)   // slightly past the 1 s animation so it finishes cleanly
+      }, delay)
+    }
+    schedule()
+    return () => { clearTimeout(flipId); clearTimeout(clearId) }
   }, [])
 
   // Reload when user changes so attempt state is fresh
@@ -127,7 +155,16 @@ export default function Home() {
                 transition: 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.4s ease',
               }}
             >
-              Finance <span className="text-gold">Trading Cards</span>
+              {TITLE_CHARS.map((item, i) =>
+                item.char === ' '
+                  ? <span key={i}>&nbsp;</span>
+                  : <span
+                      key={i}
+                      className={`inline-block ${item.gold ? 'text-gold' : ''} ${flippingIndex === i ? 'letter-flip' : ''}`}
+                    >
+                      {item.char}
+                    </span>
+              )}
             </h1>
           </div>
           <p className="text-xl text-navy/60 max-w-lg mx-auto">

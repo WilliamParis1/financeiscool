@@ -70,6 +70,16 @@ html, body {
   100% { transform: perspective(900px) rotateY(0deg)  scale(1);    opacity: 1; }
 }
 
+/* ---------- Title letter flip ---------- */
+.letter-flip {
+  animation: letter-flip 1s cubic-bezier(.5,.05,.5,.95);
+}
+@keyframes letter-flip {
+  0%   { transform: perspective(200px) rotateY(0deg)   scale(1);    }
+  50%  { transform: perspective(200px) rotateY(180deg) scale(1.25); }
+  100% { transform: perspective(200px) rotateY(360deg) scale(1);    }
+}
+
 /* Full-screen flash on reveal */
 .screen-flash {
   position: fixed; inset: 0; pointer-events: none; z-index: 60;
