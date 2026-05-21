@@ -17,7 +17,7 @@ const FLIPPABLE = TITLE_CHARS.reduce((acc, c, i) => {
 }, [])
 
 export default function Home() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [titleRevealed, setTitleRevealed] = useState(false)
   const [flippingIndex, setFlippingIndex] = useState(null)
   const [dailyCards, setDailyCards] = useState([])
@@ -28,6 +28,7 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false)
   const [expanded, setExpanded] = useState({})
   const [selectedCard, setSelectedCard] = useState(null)
+  const [rankInfo, setRankInfo] = useState({ rank: null, total: null })
   const TODAY = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
@@ -92,6 +93,26 @@ export default function Home() {
       setTodayAttempt(null)
     }
     setAttemptLoaded(true)
+
+    // Compute leaderboard rank for logged-in user
+    if (user) {
+      const { data: allCards } = await supabase
+        .from('user_cards')
+        .select('user_id, quantity')
+
+      if (allCards) {
+        const totals = {}
+        allCards.forEach(uc => {
+          totals[uc.user_id] = (totals[uc.user_id] || 0) + (uc.quantity || 1)
+        })
+        const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1])
+        const idx = sorted.findIndex(([uid]) => uid === user.id)
+        setRankInfo({
+          rank: idx >= 0 ? idx + 1 : sorted.length + 1,
+          total: sorted.length,
+        })
+      }
+    }
   }
 
   async function handleSubmit(daily) {
@@ -194,6 +215,15 @@ export default function Home() {
         </div>
 
         <OrbitingCards />
+
+        {/* Welcome back banner */}
+        {user && profile?.username && rankInfo.rank && (
+          <div className="mb-6 px-5 py-3 rounded-xl border border-gold/30 bg-gold/5 text-center text-sm text-navy/70 max-w-sm mx-auto">
+            Welcome back, <span className="font-bold text-navy">{profile.username}</span>! You are currently{' '}
+            <span className="font-bold text-gold-dark">#{rankInfo.rank}</span> out of{' '}
+            <span className="font-bold text-navy">{rankInfo.total}</span> players.
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-4 justify-center mb-16">
           {user ? (
