@@ -36,7 +36,7 @@ export default function Navbar() {
   const linkClass = 'text-navy/70 hover:text-gold border border-navy/15 hover:border-gold/50 rounded-lg px-3 py-1.5 font-medium transition-all duration-200 hover:shadow-[0_0_10px_rgba(201,162,75,0.35)]'
 
   return (
-    <nav className="bg-white border-b border-navy/10 sticky top-0 z-40 shadow-sm">
+    <nav className="bg-white border-b border-navy/10 sticky top-0 z-40 shadow-sm overflow-visible">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/">
@@ -51,14 +51,16 @@ export default function Navbar() {
                 to={to}
                 title={label}
                 className={({ isActive }) =>
-                  `group relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200 overflow-hidden
+                  `group relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200
                    ${isActive
                      ? 'border-gold shadow-[0_0_12px_rgba(201,162,75,0.6)]'
                      : 'border-navy/15 hover:border-gold/60 hover:shadow-[0_0_10px_rgba(201,162,75,0.35)]'}`
                 }
               >
-                <img src={icon} alt={label} className="w-6 h-6 object-contain" />
-                <span className="pointer-events-none absolute top-11 left-1/2 -translate-x-1/2 whitespace-nowrap bg-navy text-white text-xs font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+                  <img src={icon} alt={label} className="w-6 h-6 object-contain" />
+                </div>
+                <span className="pointer-events-none absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap bg-navy text-white text-xs font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-[9999]">
                   {label}
                 </span>
               </NavLink>
@@ -73,7 +75,7 @@ export default function Navbar() {
                 }
               >
                 <span className="text-gold font-extrabold text-xs">ADM</span>
-                <span className="pointer-events-none absolute top-11 left-1/2 -translate-x-1/2 whitespace-nowrap bg-navy text-white text-xs font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                <span className="pointer-events-none absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap bg-navy text-white text-xs font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-[9999]">
                   Admin
                 </span>
               </NavLink>
