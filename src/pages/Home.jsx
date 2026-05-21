@@ -147,7 +147,7 @@ export default function Home() {
             }}
           >
             <h1
-              className="text-5xl md:text-6xl font-extrabold text-navy"
+              className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-navy"
               style={{
                 transformStyle: 'preserve-3d',
                 transform: titleRevealed ? 'rotateY(0deg)' : 'rotateY(-90deg)',
