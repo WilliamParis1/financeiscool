@@ -99,6 +99,7 @@ export default function OrbitingCards() {
           width: '88px',
           height: '88px',
           zIndex: 50,
+          filter: 'drop-shadow(0 0 12px rgba(59,130,246,0.9)) drop-shadow(0 0 28px rgba(59,130,246,0.55)) drop-shadow(0 0 50px rgba(59,130,246,0.25))',
         }}
       />
 
