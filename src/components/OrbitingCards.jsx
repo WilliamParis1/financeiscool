@@ -95,10 +95,10 @@ export default function OrbitingCards() {
         className="sphere-glow"
         style={{
           position: 'absolute',
-          left: `${CX - 15}px`,
-          top:  `${CY - 15}px`,
-          width: '29px',
-          height: '29px',
+          left: `${CX - 29}px`,
+          top:  `${CY - 29}px`,
+          width: '58px',
+          height: '58px',
           zIndex: 50,
         }}
       />
