@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import Navbar from './components/Navbar'
-import Sidebar from './components/Sidebar'
 import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -20,8 +19,7 @@ export default function App() {
       <AuthProvider>
         <div className="min-h-screen bg-white text-navy">
           <Navbar />
-          <Sidebar />
-          <main className="container mx-auto px-4 py-8 md:pr-20 pb-24 md:pb-8">
+          <main className="container mx-auto px-4 py-8 pb-24 md:pb-8">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />

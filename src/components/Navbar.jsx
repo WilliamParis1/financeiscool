@@ -1,6 +1,14 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useState, useRef, useEffect } from 'react'
+
+const NAV_ITEMS = [
+  { to: '/explore',     icon: '/menu/explore.png',     label: 'Explore'     },
+  { to: '/daily',       icon: '/menu/dailydraw.png',   label: 'Daily Draw'  },
+  { to: '/collection',  icon: '/menu/collection.png',  label: 'Collection'  },
+  { to: '/leaderboard', icon: '/menu/leaderboard.png', label: 'Leaderboard' },
+  { to: '/trade',       icon: '/menu/trade.png',       label: 'Trades'      },
+]
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth()
@@ -35,6 +43,42 @@ export default function Navbar() {
             <img src="/logo19052026.png" alt="Finance Trading Cards" className="h-10 w-auto" />
           </Link>
 
+          {/* Center icon nav */}
+          <div className="hidden md:flex items-center gap-2">
+            {NAV_ITEMS.map(({ to, icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                title={label}
+                className={({ isActive }) =>
+                  `group relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200 overflow-hidden
+                   ${isActive
+                     ? 'border-gold shadow-[0_0_12px_rgba(201,162,75,0.6)]'
+                     : 'border-navy/15 hover:border-gold/60 hover:shadow-[0_0_10px_rgba(201,162,75,0.35)]'}`
+                }
+              >
+                <img src={icon} alt={label} className="w-6 h-6 object-contain" />
+                <span className="pointer-events-none absolute top-11 left-1/2 -translate-x-1/2 whitespace-nowrap bg-navy text-white text-xs font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                  {label}
+                </span>
+              </NavLink>
+            ))}
+            {profile?.is_admin && (
+              <NavLink
+                to="/admin"
+                title="Admin"
+                className={({ isActive }) =>
+                  `group relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200
+                   ${isActive ? 'border-gold bg-gold/10' : 'border-gold/40 hover:border-gold hover:shadow-[0_0_10px_rgba(201,162,75,0.45)]'}`
+                }
+              >
+                <span className="text-gold font-extrabold text-xs">ADM</span>
+                <span className="pointer-events-none absolute top-11 left-1/2 -translate-x-1/2 whitespace-nowrap bg-navy text-white text-xs font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                  Admin
+                </span>
+              </NavLink>
+            )}
+          </div>
 
           {/* Desktop right side */}
           <div className="hidden md:flex items-center gap-3">
