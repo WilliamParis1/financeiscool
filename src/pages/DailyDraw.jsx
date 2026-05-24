@@ -169,7 +169,7 @@ export default function DailyDraw() {
           </p>
           <p className="text-navy font-semibold text-lg">{newCard?.name}</p>
           {!onCooldown && (
-            <GlowButton onClick={claimCard} className="px-14 py-4 text-lg">Draw Again</GlowButton>
+            <GlowButton onClick={claimCard} className="px-14 py-4 text-lg">Draw a card</GlowButton>
           )}
         </div>
 
@@ -193,7 +193,7 @@ export default function DailyDraw() {
             </div>
           </div>
           <GlowButton onClick={claimCard} className="px-14 py-4 text-lg">
-            {lastClaimAt ? 'Draw Again' : "Claim Today's Card"}
+            {lastClaimAt ? 'Draw a card' : "Claim Today's Card"}
           </GlowButton>
         </div>
       )}
