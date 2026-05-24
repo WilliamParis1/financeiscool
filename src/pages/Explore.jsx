@@ -14,7 +14,6 @@ export default function Explore() {
   const [ownedIds, setOwnedIds] = useState(new Set())
   const [tags, setTags] = useState([])
   const [loading, setLoading] = useState(true)
-  const [rarityFilter, setRarityFilter] = useState('all')
   const [tagFilter, setTagFilter] = useState('all')
   const [ownedFilter, setOwnedFilter] = useState('all')
   const [tagMenuOpen, setTagMenuOpen] = useState(false)
@@ -57,7 +56,6 @@ export default function Explore() {
   const tagColorMap = Object.fromEntries(tags.map(t => [t.name, t.color]))
 
   const filtered = cards.filter(card => {
-    if (rarityFilter !== 'all' && card.rarity !== rarityFilter) return false
     if (tagFilter !== 'all' && !(card.tag_names || []).includes(tagFilter)) return false
     if (ownedFilter === 'owned' && !ownedIds.has(card.id)) return false
     if (ownedFilter === 'unowned' && ownedIds.has(card.id)) return false
@@ -95,21 +93,6 @@ export default function Explore() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-8 items-center">
-
-        {/* Rarity chips */}
-        <div className="flex gap-2 flex-wrap">
-          {['all', 'common', 'rare', 'legendary'].map(r => (
-            <button
-              key={r}
-              onClick={() => setRarityFilter(r)}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold capitalize transition-colors ${
-                rarityFilter === r ? 'bg-navy text-white' : 'bg-white text-navy/60 hover:text-navy border border-navy/15'
-              }`}
-            >
-              {r === 'all' ? 'All rarities' : r}
-            </button>
-          ))}
-        </div>
 
         {/* Tag dropdown */}
         {tags.length > 0 && (
